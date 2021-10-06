@@ -10,6 +10,7 @@
 ## 使い方
 構築する仮想ネットワークによって使用するツールが異なります。
 
+
 ### ペアインタフェースの作成
 仮想ネットワークでは、常にインタフェースの対向にもう一つのインタフェースが存在します。  
 ip linkコマンドで仮想インタフェースを作成すると、このコマンドを実行したホストの仮想ネットワーク(名前)空間に2つのペアの仮想インタフェースを作成します。  
@@ -73,7 +74,6 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     [Real Host]
     RH$ ping 172.18.100.101
 
-
     [node1]
     $ sudo docker exec -it node1 bash
     node1$ ping 172.18.100.100
@@ -83,10 +83,8 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ ./mkcontainer.sh node node2
     $ ./ctl2ctl.sh connect node1 172.18.0.1/24 node2 172.18.0.2/24
 
-
     [node1]
     node1$ ping 172.18.0.2
-
 
     [node2]
     node2$ ping 172.18.0.1
@@ -99,9 +97,25 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
 次に仮想ブリッジを利用したネットワークを構築する。  
 その前に node1, node2 を削除する。
 
-    $ ./rmcontainer.sh node1
-    $ ./rmcontainer.sh node2
+    $ ./rmcontainer.sh node1 node2
 
 実ホストRHとnode1はリンクされていたが、node1削除と同時にnode1のインタフェースが削除されたので、実ホスト側の対向のインタフェースも同時に削除される。
 
+
 ### L2ネットワーク構築
+まずはnode1, node2, node3を作成する。
+
+    $ ./mkcontainer node node1 node2 node3
+仮想ブリッジbr0を作成後、node1, node2, node3の3つのノードを接続してみる。
+
+    $ ./ctlnet.sh setup br0 node1 172.18.0.1/24 node2 172.18.0.2/24 node3 172.18.0.3/24
+
+上記のコマンドは以下のコマンドとほぼ同様の効果を示す。
+
+    $ sudo ip link add br0 type bridge
+    $ sudo ip link set br0 up
+    $ ./ctl2net.sh connect br0 - node1 172.18.0.1/24
+    $ ./ctl2net.sh connect br0 - node2 172.18.0.2/24
+    $ ./ctl2net.sh connect br0 - node3 172.18.0.3/24
+
+これによってnode1, node2, node3は相互にパケットを送受信できるようになった。
