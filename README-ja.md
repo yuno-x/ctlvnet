@@ -73,6 +73,7 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     [Real Host]
     RH$ ping 172.18.100.101
 
+
     [node1]
     $ sudo docker exec -it node1 bash
     node1$ ping 172.18.100.100
@@ -82,10 +83,25 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ ./mkcontainer.sh node node2
     $ ./ctl2ctl.sh connect node1 172.18.0.1/24 node2 172.18.0.2/24
 
+
     [node1]
     node1$ ping 172.18.0.2
+
 
     [node2]
     node2$ ping 172.18.0.1
 
+![node](https://user-images.githubusercontent.com/56585037/136220758-b56d61d3-c895-46c0-bd4c-663539c8cecf.png)
 
+どちらもデフォルトでapache2とcurlがインストールされているので、curlでapache2のデフォルトページをダウンロードすることも可能です。  
+今回、node1とnode2の2つのホストをデータリンクさせましたが、3つ以上のホストをデータリンクさせることも可能である。  
+これを実現するには仮想ブリッジを作成すればよい。Linuxの仮想ブリッジはラーニングスイッチとして作成され、MACアドレス-物理ポートの対応テーブル、いわゆるMACテーブルを参照してパケット(正確にはフレーム)をスイッチングする。  
+次に仮想ブリッジを利用したネットワークを構築する。  
+その前に node1, node2 を削除する。
+
+    $ ./rmcontainer.sh node1
+    $ ./rmcontainer.sh node2
+
+実ホストRHとnode1はリンクされていたが、node1削除と同時にnode1のインタフェースが削除されたので、実ホスト側の対向のインタフェースも同時に削除される。
+
+### L2ネットワーク構築
