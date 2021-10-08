@@ -24,6 +24,13 @@ then
 fi
 IMAGENAME=$1
 
+if ! systemctl --no-pager > /dev/null 2>&1
+then
+  echo "Systemd seems not to be runnnig."
+
+  exit -1
+fi
+
 #cat << EOF > /dev/null
 EXISTIMAGE=$(sudo docker images $IMAGENAME | grep -v "REPOSITORY")
 CNAME=$IMAGENAME
