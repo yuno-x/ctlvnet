@@ -300,14 +300,12 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
     $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 10.0.3.0/24 via 172.18.1.254; done
     $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 192.168.4.0/24 via 172.18.1.254; done
 
-
     $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 100.100.100.0/24 via 172.18.2.254; done
     $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 110.110.110.0/24 via 172.18.2.254; done
     $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 120.120.120.0/24 via 172.18.2.254; done
     $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 130.130.130.0/24 via 172.18.2.254; done
     $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 10.0.3.0/24 via 172.18.2.254; done
     $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 192.168.4.0/24 via 172.18.2.254; done
-
 
     $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 100.100.100.0/24 via 10.0.3.254; done
     $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 110.110.110.0/24 via 10.0.3.254; done
@@ -317,7 +315,6 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
     $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 172.18.2.0/24 via 10.0.3.254; done
     $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 192.168.4.0/24 via 10.0.3.254; done
 
-
     $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 100.100.100.0/24 via 192.168.4.254; done
     $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 110.110.110.0/24 via 192.168.4.254; done
     $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 120.120.120.0/24 via 192.168.4.254; done
@@ -325,7 +322,6 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
     $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 172.18.1.0/24 via 192.168.4.254; done
     $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 172.18.2.0/24 via 192.168.4.254; done
     $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 10.0.3.0/24 via 192.168.4.254; done
-
 
     $ sudo docker exec -it rt0 ip route add 10.0.3.0/24 via 100.100.100.2
     $ sudo docker exec -it rt0 ip route add 192.168.4.0/24 via 100.100.100.2
@@ -335,7 +331,6 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
     $ sudo docker exec -it rt0 ip route add 192.168.4.0/24 via 100.100.100.2
     $ sudo docker exec -it rt0 ip route add 10.0.3.0/24 via 100.100.100.2
 
-
     $ sudo docker exec -it rt1 ip route add 10.0.3.0/24 via 110.110.110.2
     $ sudo docker exec -it rt1 ip route add 192.168.4.0/24 via 110.110.110.2
     $ sudo docker exec -it rt1 ip route add 120.120.120.0/24 via 110.110.110.2
@@ -343,13 +338,11 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
     $ sudo docker exec -it rt1 ip route add 172.18.1.0/24 via 100.100.100.1
     $ sudo docker exec -it rt1 ip route add 172.18.2.0/24 via 100.100.100.1
 
-
     $ sudo docker exec -it rt2 ip route add 10.0.3.0/24 via 120.120.120.2
     $ sudo docker exec -it rt2 ip route add 192.168.4.0/24 via 130.130.130.2
     $ sudo docker exec -it rt2 ip route add 100.100.100.0/24 via 110.110.110.1
     $ sudo docker exec -it rt2 ip route add 172.18.1.0/24 via 110.110.110.1
     $ sudo docker exec -it rt2 ip route add 172.18.2.0/24 via 110.110.110.1
-
 
     $ sudo docker exec -it rt3 ip route add 192.168.4.0/24 via 120.120.120.1
     $ sudo docker exec -it rt3 ip route add 100.100.100.0/24 via 120.120.120.1
@@ -357,7 +350,6 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
     $ sudo docker exec -it rt3 ip route add 130.130.130.0/24 via 120.120.120.1
     $ sudo docker exec -it rt3 ip route add 172.18.1.0/24 via 120.120.120.1
     $ sudo docker exec -it rt3 ip route add 172.18.2.0/24 via 120.120.120.1
-
 
     $ sudo docker exec -it rt4 ip route add 10.0.3.0/24 via 130.130.130.1
     $ sudo docker exec -it rt4 ip route add 100.100.100.0/24 via 130.130.130.1
@@ -367,9 +359,9 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
     $ sudo docker exec -it rt4 ip route add 172.18.2.0/24 via 130.130.130.1
 
 
+                                                                                                                         
 ![l3net](https://github.com/yuno-x/ctlvnet/raw/img/complex_net.png)
 
-                                                                                                                         
 さて、上記を見るにスタティックルート情報の設定はネットワーク構成が少し複雑になるだけで、非常に面倒になることがわかります。
 ただしエンドポイントのノードが上記のように1つのルータにしか接続されていない場合、全ての宛先(0.0.0.0/0)へのルート情報を設定することでエンドポイントのルーティング設定を簡易化できます。
 例えば、
@@ -387,7 +379,13 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
 
 と置き換えることができます。この全ての宛先へのルートをデフォルトルートとよび、ネクストホップとなるルータをデフォルトゲートウェイとよびます。
 ただし、エンドポイントにデフォルトルートを設定したところで、ルータのルーティング設定は煩雑なままとなっています。  
-これを解決するためにダイナミックルーティングを使用することができます。
+これを解決するためにダイナミックルーティングを使用することができます。  
+その前に全ノードのルート情報を初期化しましょう。
+
+    $ for NODE in $(sudo docker ps --format "{{.Names}}"); do sudo docker exec -it $NODE ip route flush scope global; done
+
+これで手動で設定したルート情報が削除されたはずです。
 
 
 ### RIP (ダイナミックルーティング・プロトコル)
+
