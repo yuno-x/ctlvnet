@@ -185,6 +185,8 @@ MACアドレステーブルにブリッジに埋め込まれているインタ�
     $ ./ctl2net.sh connect rt 172.18.0.254/24 nodeA 172.18.0.1/24
     $ ./ctl2net.sh connect rt 10.0.0.254/24 nodeB 10.0.0.1/24
 
+![router](https://github.com/yuno-x/ctlvnet/raw/img/router.png)
+
 さて、ではnodeAからnodeBへパケットを送ってみましょう。
 
     [nodeA]
@@ -269,6 +271,8 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
     $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 172.18.2.0/24 via 172.18.1.254; done
     $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 172.18.1.0/24 via 172.18.2.254; done
 
+![l3net](https://github.com/yuno-x/ctlvnet/raw/img/l3net.png)
+
 これによって、例えばnodeA1からnodeB1, nodeB2へ、nodeB1からnodeA1, nodeA2, nodeA3へとpingを送ることができるようになりました。
 
 そのように手動で設定したルート情報をスタティックルート(静的ルート)と呼びます。  
@@ -276,3 +280,114 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
 ネットワーク構成が複雑になればなるほどルート情報の設定が大変になります。
 
 例えば次のようなネットワーク構成があるとします。
+
+    $ ./mkcontainer.sh node rt1 rt2 rt3 rt4 nodeC1 nodeC2 nodeD1 nodeD2
+    $ ./ctl2net.sh setup brC nodeC1 10.0.3.1/24 nodeC2 10.0.3.2/24 rt3 10.0.3.254/24
+    $ ./ctl2net.sh setup brD nodeD1 192.168.4.1/24 nodeD2 192.168.4.2/24 rt4 192.168.4.254/24
+    $ ./ctl2net.sh connect rt0 100.100.100.1/24 rt1 100.100.100.2/24
+    $ ./ctl2net.sh connect rt1 110.110.110.1/24 rt2 110.110.110.2/24
+    $ ./ctl2net.sh connect rt2 120.120.120.1/24 rt3 120.120.120.2/24
+    $ ./ctl2net.sh connect rt2 130.130.130.1/24 rt4 130.130.130.2/24
+
+さて、この構成で異なるセグメント間でノード同士の通信を行うにはどのようにルート情報を設定すればよいでしょうか。
+様々な方法が考えられますが、ノードが属しているセグメント以外へのルート情報を設定するのか確実でしょう。
+これはルータのようなパケット転送を行うノードも例外ではありません。
+
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 100.100.100.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 110.110.110.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 120.120.120.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 130.130.130.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 10.0.3.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 192.168.4.0/24 via 172.18.1.254; done
+
+
+    $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 100.100.100.0/24 via 172.18.2.254; done
+    $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 110.110.110.0/24 via 172.18.2.254; done
+    $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 120.120.120.0/24 via 172.18.2.254; done
+    $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 130.130.130.0/24 via 172.18.2.254; done
+    $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 10.0.3.0/24 via 172.18.2.254; done
+    $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 192.168.4.0/24 via 172.18.2.254; done
+
+
+    $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 100.100.100.0/24 via 10.0.3.254; done
+    $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 110.110.110.0/24 via 10.0.3.254; done
+    $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 120.120.120.0/24 via 10.0.3.254; done
+    $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 130.130.130.0/24 via 10.0.3.254; done
+    $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 172.18.1.0/24 via 10.0.3.254; done
+    $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 172.18.2.0/24 via 10.0.3.254; done
+    $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add 192.168.4.0/24 via 10.0.3.254; done
+
+
+    $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 100.100.100.0/24 via 192.168.4.254; done
+    $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 110.110.110.0/24 via 192.168.4.254; done
+    $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 120.120.120.0/24 via 192.168.4.254; done
+    $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 130.130.130.0/24 via 192.168.4.254; done
+    $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 172.18.1.0/24 via 192.168.4.254; done
+    $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 172.18.2.0/24 via 192.168.4.254; done
+    $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add 10.0.3.0/24 via 192.168.4.254; done
+
+
+    $ sudo docker exec -it rt0 ip route add 10.0.3.0/24 via 100.100.100.2
+    $ sudo docker exec -it rt0 ip route add 192.168.4.0/24 via 100.100.100.2
+    $ sudo docker exec -it rt0 ip route add 110.110.110.0/24 via 100.100.100.2
+    $ sudo docker exec -it rt0 ip route add 120.120.120.0/24 via 100.100.100.2
+    $ sudo docker exec -it rt0 ip route add 130.130.130.0/24 via 100.100.100.2
+    $ sudo docker exec -it rt0 ip route add 192.168.4.0/24 via 100.100.100.2
+    $ sudo docker exec -it rt0 ip route add 10.0.3.0/24 via 100.100.100.2
+
+
+    $ sudo docker exec -it rt1 ip route add 10.0.3.0/24 via 110.110.110.2
+    $ sudo docker exec -it rt1 ip route add 192.168.4.0/24 via 110.110.110.2
+    $ sudo docker exec -it rt1 ip route add 120.120.120.0/24 via 110.110.110.2
+    $ sudo docker exec -it rt1 ip route add 130.130.130.0/24 via 110.110.110.2
+    $ sudo docker exec -it rt1 ip route add 172.18.1.0/24 via 100.100.100.1
+    $ sudo docker exec -it rt1 ip route add 172.18.2.0/24 via 100.100.100.1
+
+
+    $ sudo docker exec -it rt2 ip route add 10.0.3.0/24 via 120.120.120.2
+    $ sudo docker exec -it rt2 ip route add 192.168.4.0/24 via 130.130.130.2
+    $ sudo docker exec -it rt2 ip route add 100.100.100.0/24 via 110.110.110.1
+    $ sudo docker exec -it rt2 ip route add 172.18.1.0/24 via 110.110.110.1
+    $ sudo docker exec -it rt2 ip route add 172.18.2.0/24 via 110.110.110.1
+
+
+    $ sudo docker exec -it rt3 ip route add 192.168.4.0/24 via 120.120.120.1
+    $ sudo docker exec -it rt3 ip route add 100.100.100.0/24 via 120.120.120.1
+    $ sudo docker exec -it rt3 ip route add 110.110.110.0/24 via 120.120.120.1
+    $ sudo docker exec -it rt3 ip route add 130.130.130.0/24 via 120.120.120.1
+    $ sudo docker exec -it rt3 ip route add 172.18.1.0/24 via 120.120.120.1
+    $ sudo docker exec -it rt3 ip route add 172.18.2.0/24 via 120.120.120.1
+
+
+    $ sudo docker exec -it rt4 ip route add 10.0.3.0/24 via 130.130.130.1
+    $ sudo docker exec -it rt4 ip route add 100.100.100.0/24 via 130.130.130.1
+    $ sudo docker exec -it rt4 ip route add 110.110.110.0/24 via 130.130.130.1
+    $ sudo docker exec -it rt4 ip route add 130.130.130.0/24 via 130.130.130.1
+    $ sudo docker exec -it rt4 ip route add 172.18.1.0/24 via 130.130.130.1
+    $ sudo docker exec -it rt4 ip route add 172.18.2.0/24 via 130.130.130.1
+
+
+![l3net](https://github.com/yuno-x/ctlvnet/raw/img/complex_net.png)
+
+                                                                                                                         
+さて、上記を見るにスタティックルート情報の設定はネットワーク構成が少し複雑になるだけで、非常に面倒になることがわかります。
+ただしエンドポイントのノードが上記のように1つのルータにしか接続されていない場合、全ての宛先(0.0.0.0/0)へのルート情報を設定することでエンドポイントのルーティング設定を簡易化できます。
+例えば、
+
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 100.100.100.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 110.110.110.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 120.120.120.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 130.130.130.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 10.0.3.0/24 via 172.18.1.254; done
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 192.168.4.0/24 via 172.18.1.254; done
+
+を、
+
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add default via 172.18.1.254; done
+
+と置き換えることができます。この全ての宛先へのルートをデフォルトルートとよび、ネクストホップとなるルータをデフォルトゲートウェイとよびます。
+ただし、エンドポイントにデフォルトルートを設定したところで、ルータのルーティング設定は煩雑なままとなっています。  
+これを解決するためにダイナミックルーティングを使用することができます。
+
+
+### RIP (ダイナミックルーティング・プロトコル)
