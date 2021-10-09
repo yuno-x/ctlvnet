@@ -8,7 +8,8 @@
 仮想ノードはエンドポイントデバイスやルータとして使うことができます。
 
 ## 使い方
-構築する仮想ネットワークによって使用するツールが異なります。
+構築する仮想ネットワークによって使用するツールが異なります。  
+以下はツールの使い方の説明に焦点を当てているため、その他コマンドの仕様などに関しては正確な説明に努めていますが、それを保証することはありません。
 
 
 ### ペアインタフェースの作成
@@ -20,7 +21,7 @@ ip linkコマンドで仮想インタフェースを作成すると、このコ�
 
 次の図のようなネットワークが構成されます。
 
-![peer](https://user-images.githubusercontent.com/56585037/136202638-68e1c52b-a938-4915-83b3-d394c5a72c3a.png)
+![peer](https://github.com/yuno-x/ctlvnet/raw/img/node.png)
 
 試しに以下のコマンドを実行してみてください。
 
@@ -69,14 +70,14 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ sudo docker exec -it node1 172.18.100.100
 
 当然、ターミナルを2つ用意し、同時にpingパケットを送ることも可能です。  
-以下では実ホストでネットワーク系のコマンドを打つときのプロンプトとして "RH$ ", node1のプロンプトとして "node1$ "を使用しています。
+以下では実ホストでネットワーク系のコマンドを打つときのプロンプトとして "RH$ ", node1のプロンプトとして "node1# "を使用しています。
 
     [Real Host]
     RH$ ping 172.18.100.101
 
     [node1]
     $ sudo docker exec -it node1 bash
-    node1$ ping 172.18.100.100
+    node1# ping 172.18.100.100
 
 またノード同士を接続することもできます。
 
@@ -84,12 +85,12 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ ./ctl2ctl.sh connect node1 172.18.0.1/24 node2 172.18.0.2/24
 
     [node1]
-    node1$ ping 172.18.0.2
+    node1# ping 172.18.0.2
 
     [node2]
-    node2$ ping 172.18.0.1
+    node2# ping 172.18.0.1
 
-![node](https://user-images.githubusercontent.com/56585037/136220758-b56d61d3-c895-46c0-bd4c-663539c8cecf.png)
+![node](https://github.com/yuno-x/ctlvnet/raw/img/node.png)
 
 どちらもデフォルトでapache2とcurlがインストールされているので、curlでapache2のデフォルトページをダウンロードすることも可能です。  
 今回、node1とnode2の2つのホストをデータリンクさせましたが、3つ以上のホストをデータリンクさせることも可能です。  
@@ -123,12 +124,15 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
 試しにnode1からnode2, node3へpingを送ってみます。  
 
     [node1]
-    node1$ ping 172.18.0.2
+    node1# ping 172.18.0.2
     ^C
-    node1$ ping 172.18.0.3
+    node1# ping 172.18.0.3
     ^C
 
 疎通を確認することができるはずです。  
+
+![switch](https://github.com/yuno-x/ctlvnet/raw/img/switch.png)
+
 ちなみに仮想ブリッジは仮想インタフェースの一種として作成されます。  
 つまり仮想ブリッジインタフェースを作成したホストは仮想ブリッジとなります。  
 ブリッジの機能によってはIPパケットなどのL3フレームを送信することがあり
@@ -141,7 +145,7 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ sudo ip address add 172.18.0.100/24 dev br0
 
     [node1]
-    node1$ ping 172.18.0.100
+    node1# ping 172.18.0.100
     ^C
 
 疎通を確認できるはずです。
@@ -153,7 +157,7 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ ./ctl2net.sh connect br0 - br1 -
 
     [node1]
-    node1$ ping 172.18.0.5
+    node1# ping 172.18.0.5
     ^C
 
 これでブリッジbr0, br1を経由したnode1とnode5のパケット転送を行えたことを確認できました。  
@@ -165,7 +169,7 @@ $ bridge fdb show br br0 | grep -vw "permanent"
 MACアドレステーブルにブリッジに埋め込まれているインタフェースとその対向のMACアドレスの関係が記録されていることが分かります。
 このテーブルによってユニキャストへのパケットをセグメント内でブロードキャストせずに送ることができ、帯域を節約することができます。
 
-さて、次はルーティングに触れますが、その前に作成した環境を削除しましょう。
+さて、次はルーティングに触れますが、その前に作成したノードを削除しましょう。
 
     $ ./rmcontainer node1 node2 node3 node4 node5
     $ ./ctl2net delete br0 br1
@@ -173,4 +177,102 @@ MACアドレステーブルにブリッジに埋め込まれているインタ�
 以上で作成した環境は削除されたはずです。
 
 
-### L3ネットワーク構築
+### L3ネットワーク構築（スタティックルーティング）
+次はL3ネットワークを構築するためにルータとネットワークセグメントが異なる2つのノードを作成します。  
+そしてルータに2つのノードを接続し、IPアドレスを付与します。
+
+    $ ./mkcontainer.sh node rt nodeA nodeB
+    $ ./ctl2net.sh connect rt 172.18.0.254/24 nodeA 172.18.0.1/24
+    $ ./ctl2net.sh connect rt 10.0.0.254/24 nodeB 10.0.0.1/24
+
+さて、ではnodeAからnodeBへパケットを送ってみましょう。
+
+    [nodeA]
+    nodeA# ping 10.0.0.1
+    ping: connect: Network is unreachable
+
+上記のように送れないはずです。  
+それはnodeAにnodeBへのルート情報を設定していないからです。  
+試しにルーティングテーブルを確認してみましょう。  
+
+    [nodeA]
+    nodeA# ip route
+    172.18.0.0/24 dev veth0 proto kernel scope link src 172.18.0.1
+
+172.18.0.0/24 はルートの目的地となるネットワークセグメントです。  
+dev veth0 はインタフェースveth0を使用してパケットを送出するという意味です。  
+proto kernel はカーネルによってルート情報が作成されたことを示しています。  
+scope link はデータリンク上に直接パケットを送出するという意味です。  
+src 172.18.0.1 は 172.18.0.1 というIPアドレスを使用してパケットを送出するという意味です。  
+しかし、10.0.0.0/24 へのルート情報はルーティングテーブルに登録されていません。  
+ここでルーティングテーブルに 10.0.0.0/24 へのルート情報を登録してpingを送ってみましょう。
+
+    [nodeA]
+    nodeA# ip route add 10.0.0.0/24 via 172.18.0.1
+    nodeA# ping 10.0.0.1
+    ^C
+
+返答がありません。これはたとえnodeBにpingパケットが届いたとしてもnodeBがnodeAへのルート情報を登録していないため返答をすることができないからです。  
+nodeBへパケットが届いているか否かはnodeBでパケットキャプチャをすることで確認できます。
+
+    [nodeB]
+    nodeB# tcpdump -ln# icmp                      
+    tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+    listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+        1  22:06:23.930002 IP 172.18.0.1 > 10.0.0.1: ICMP echo request, id 7, seq 1, length 64
+        2  22:06:24.946273 IP 172.18.0.1 > 10.0.0.1: ICMP echo request, id 7, seq 2, length 64
+        3  22:06:25.970002 IP 172.18.0.1 > 10.0.0.1: ICMP echo request, id 7, seq 3, length 64
+        4  22:06:26.994276 IP 172.18.0.1 > 10.0.0.1: ICMP echo request, id 7, seq 4, length 64
+    ^C
+    4 packets captured
+    4 packets received by filter
+    0 packets dropped by kernel
+
+もし届いていなければルータ側で次の設定をしてみてください。
+
+    [rt]
+    rt# sysctl -w net.ipv4.ip_forward=1
+    net.ipv4.ip_forward = 1
+
+これでルータでIPパケットフォワーディング(IPパケット転送)ができるはずです。
+
+さて、nodeBが返答を送信するためにはnodeBに172.18.0.0/24へのルート情報を登録します。
+このようにすると、nodeAからnodeBへのpingが疎通します。
+
+    [nodeB]
+    nodeB# ip route add 172.18.0.0/24 via 10.0.0.254
+
+    [nodeA]
+    nodeA# ping 10.0.0.1
+    PING 10.0.0.1 (10.0.0.1) 56(84) bytes of data.
+    64 bytes from 10.0.0.1: icmp_seq=1 ttl=63 time=0.077 ms
+    64 bytes from 10.0.0.1: icmp_seq=2 ttl=63 time=0.072 ms
+    64 bytes from 10.0.0.1: icmp_seq=3 ttl=63 time=0.073 ms
+    64 bytes from 10.0.0.1: icmp_seq=4 ttl=63 time=0.072 ms
+    ^C
+    --- 10.0.0.1 ping statistics ---
+    4 packets transmitted, 4 received, 0% packet loss, time 3068ms
+    rtt min/avg/max/mdev = 0.072/0.073/0.077/0.002 ms
+
+当然、ノードを接続したスイッチをルータに接続しても、違うセグメント間でパケットを疎通できます。  
+それを説明するために一旦作成したノードを削除しましょう。
+
+    $ ./rmcontainer.sh rt nodeA nodeB
+
+さて、ここで仮想ネットワークにセグメントA(172.18.1.0/24)とセグメントB(172.18.2.0/24)を作成しましょう。  
+セグメントAにはnodeA1, nodeA2, nodeA3, rt0が属しており、セグメントBにはnodeB1, nodeB2, rt0が属しているとします。  
+そのセグメントAの全ノードにセグメントBへのルートを、セグメントBの全ノードにセグメントBへのルートを設定します。
+
+    $ ./mkcontainer.sh node rt0 nodeA1 nodeA2 nodeA3 nodeB1 nodeB2
+    $ ./ctl2net.sh setup brA nodeA1 172.18.1.1/24 nodeA2 172.18.1.2/24 nodeA3 172.18.1.3/24 rt0 172.18.1.254/24
+    $ ./ctl2net.sh setup brB nodeB1 172.18.2.1/24 nodeB2 172.18.2.2/24 rt0 172.18.2.254/24
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add 172.18.2.0/24 via 172.18.1.254; done
+    $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add 172.18.1.0/24 via 172.18.2.254; done
+
+これによって、例えばnodeA1からnodeB1, nodeB2へ、nodeB1からnodeA1, nodeA2, nodeA3へとpingを送ることができるようになりました。
+
+そのように手動で設定したルート情報をスタティックルート(静的ルート)と呼びます。  
+今回は簡単なネットワーク構成でしたからスタティックルートの設定もあまり大変ではありませんでしたが、
+ネットワーク構成が複雑になればなるほどルート情報の設定が大変になります。
+
+例えば次のようなネットワーク構成があるとします。
