@@ -6,6 +6,9 @@ then
   exit -1
 fi
 
+sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
+sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
+
 INAME=$1
 
 for CNAME in ${@:2}
@@ -18,6 +21,8 @@ do
 
   sudo docker run -d --privileged --network none --hostname ${CNAME} --name ${CNAME} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
   #sudo docker exec ${CNAME} bash -c "echo export DISPLAY=$DISPLAY >> ~/.bashrc"
+  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.ip_forward=1 > /dev/null"
+  sudo docker exec ${CNAME} bash -c "sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null"
 
   ID=`sudo docker ps -f "name=${CNAME}" --format '{{.ID}}'`
 
