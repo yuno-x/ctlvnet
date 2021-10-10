@@ -29,7 +29,25 @@ ip linkコマンドで仮想インタフェースを作成すると、このコ�
 
 おそらく veth0, veth1 のペアのインタフェースが生成されていると思います。  
 片方のインタフェースから dhclient コマンドでパケットを送って、もう片方のインタフェースで tcpdump コマンドを実行してパケットをキャプチャしてみるとパケットが送信できていることを確認することができます。  
-ただし、IPアドレスが振られていません。  
+
+    $ sudo dhclient veth0
+
+を実行してから、別のターミナルで以下のコマンドを実行してみてください。
+
+    $ sudo tcpdump -i veth1 -ln#
+    tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+    listening on veth1, link-type EN10MB (Ethernet), capture size 262144 bytes
+        1  21:43:37.166102 IP 0.0.0.0.68 > 255.255.255.255.67: BOOTP/DHCP, Request from 16:3e:3f:18:82:a9, length 300
+        2  21:43:40.784108 IP 0.0.0.0.68 > 255.255.255.255.67: BOOTP/DHCP, Request from 16:3e:3f:18:82:a9, length 300
+        3  21:43:43.128187 IP 0.0.0.0.68 > 255.255.255.255.67: BOOTP/DHCP, Request from 16:3e:3f:18:82:a9, length 300
+    ^C
+    3 packets captured
+    3 packets received by filter
+    0 packets dropped by kernel
+
+きちんとDHCPのリクエストを送れていることがわかります。
+
+ただし、上記ではIPアドレスが振られていません。  
 次はIPアドレスを割り振ってみましょう。
 
     $ sudo ip address add 172.18.100.1/24 dev veth0
@@ -386,6 +404,32 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
 
 これで手動で設定したルート情報が削除されたはずです。
 
+さて、今のネットワーク構成は次のコマンドが実行されたときと同じ構成になっているはずです。
+きちんとネットワークが構成されてる自信がない方は以下のコマンドを実行してください。
+
+    $ ./rmcontainer.sh node rt0 rt1 rt2 rt3 rt4 nodeA1 nodeA2 nodeA3 nodeB1 nodeB2 nodeC1 nodeC2 nodeD1 nodeD2
+    $ ./ctl2net.sh delete brA brB brC brD
+
+    $ ./mkcontainer.sh node rt0 rt1 rt2 rt3 rt4 nodeA1 nodeA2 nodeA3 nodeB1 nodeB2 nodeC1 nodeC2 nodeD1 nodeD2
+    $ ./ctl2net.sh setup brA nodeA1 172.18.1.1/24 nodeA2 172.18.1.2/24 nodeA3 172.18.1.3/24 rt0 172.18.1.254/24
+    $ ./ctl2net.sh setup brB nodeB1 172.18.2.1/24 nodeB2 172.18.2.2/24 rt0 172.18.2.254/24
+    $ ./ctl2net.sh setup brC nodeC1 10.0.3.1/24 nodeC2 10.0.3.2/24 rt3 10.0.3.254/24
+    $ ./ctl2net.sh setup brD nodeD1 192.168.4.1/24 nodeD2 192.168.4.2/24 rt4 192.168.4.254/24
+    $ ./ctl2net.sh connect rt0 100.100.100.1/24 rt1 100.100.100.2/24
+    $ ./ctl2net.sh connect rt1 110.110.110.1/24 rt2 110.110.110.2/24
+    $ ./ctl2net.sh connect rt2 120.120.120.1/24 rt3 120.120.120.2/24
+    $ ./ctl2net.sh connect rt2 130.130.130.1/24 rt4 130.130.130.2/24
+
+これで確実に想定通りのネットワーク構成になっているはずです。
+これでダイナミックルーティングの準備ができました。
 
 ### RIP (ダイナミックルーティング・プロトコル)
 
+RIPは最もシンプルなルーティングプロトコルの一つです。
+RIPを使用しているルータは自分が属しているセグメントを他のRIPを使用しているルータへ広告し、広告を受け取ったルータは自動的に適切なルート情報をルーティングテーブルへ追加します。
+つまり、スタティックルーティングでは自分自身にルート情報を登録していたが、ダイナミックルーティングでは同じルーティングプロトコルを使用しているルータにルート情報を登録させます。  
+今回ダイナミックルーティングを行うためにノードにquaggaというダイナミックルーティングを行うソフトウェアをインストールしている。
+quaggaはCiscoルータライクのコマンドによって操作することができ、Ciscoルータを用いたネットワークの構築を練習することができる。
+
+quaggaでルーティングの設定を行うにはいくつか方法があるが、vtyshを使用するとCiscoルータのような操作が可能となる。
+以下ではルータrt0をRIPルータとして使用する上で、広告するセグメント情報の設定を行っている。
