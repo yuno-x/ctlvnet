@@ -64,8 +64,8 @@ function  create_node()
     exit -1
   fi
 
-  sudo sysctl -w net.ipv4.ip_forward=1
-  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
+#  sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
+#  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
 
   BR=$1
   sudo ip link add $BR type bridge
@@ -74,7 +74,10 @@ function  create_node()
   for NODE in ${@:2}
   do
     sudo ip link add c_veno0 type veth peer name ${BR}_veth$i
-    sudo ip netns add $NODE
+    if [ "`ip netns | grep -w $NODE`" == "" ]
+    then
+      sudo ip netns add $NODE
+    fi
     sudo ip link set ${BR}_veth$i master $BR
     sudo ip link set c_veno0 netns $NODE
     sudo ip link set ${BR}_veth$i up
@@ -96,8 +99,8 @@ function  setup_node()
     exit -1
   fi
 
-  sudo sysctl -w net.ipv4.ip_forward=1
-  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
+#  sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
+#  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
 
   BR=$1
   sudo ip link add $BR type bridge
@@ -108,18 +111,29 @@ function  setup_node()
   do
     NODE=${@:$n:1}
     ADDR=${@:$n+1:1}
+    
+    IFNUM=`sudo ip netns exec $NODE ls /sys/class/net | sed -n "s/veth\([0-9]*\)/\1/gp" | sort -n | tail -n 1`
+    if [ "$IFNUM" == "" ]
+    then
+      NEWIFNUM=0
+    else
+      NEWIFNUM=$(( $IFNUM + 1 ))
+    fi
 
     sudo ip link add c_veno0 type veth peer name ${BR}_veth$i
-    sudo ip netns add $NODE
+    if [ "`ip netns | grep -w $NODE`" == "" ]
+    then
+      sudo ip netns add $NODE
+    fi
     sudo ip link set ${BR}_veth$i master $BR
     sudo ip link set c_veno0 netns $NODE
     sudo ip link set ${BR}_veth$i up
-    sudo ip netns exec $NODE ip link set c_veno0 name veth0
+    sudo ip netns exec $NODE ip link set c_veno0 name veth${NEWIFNUM}
     if [ "$ADDR" != "-" ]
     then
-      sudo ip netns exec $NODE ip address add $ADDR dev veth0
+      sudo ip netns exec $NODE ip address add $ADDR dev veth${NEWIFNUM}
     fi
-    sudo ip netns exec $NODE ip link set veth0 up
+    sudo ip netns exec $NODE ip link set veth${NEWIFNUM} up
 
     i=$(( $i + 1 ))
     n=$(( $n + 2 ))
@@ -173,6 +187,9 @@ function  connect_node()
     exit -1
   fi
 
+#  sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
+#  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
+
   n=1
   while [ $n -lt $# ]
   do
@@ -182,7 +199,7 @@ function  connect_node()
     if [ -d /sys/class/net/$NODE ]
     then
       BR=$NODE
-      
+
       IFNUM=`ls /sys/class/net/ | sed -n "s/${BR}_veth\([0-9]*\)/\1/gp" | sort -n | tail -n 1`
       if [ "$IFNUM" == "" ]
       then
