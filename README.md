@@ -88,14 +88,14 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ sudo docker exec -it node1 172.18.100.100
 
 当然、ターミナルを2つ用意し、同時にpingパケットを送ることも可能です。  
-以下では実ホストでネットワーク系のコマンドを打つときのプロンプトとして "RH$ ", node1のプロンプトとして "node1# "を使用しています。
+以下では実ホストでネットワーク系のコマンドを打つときのプロンプトとして "(RH)$ ", node1のプロンプトとして "(node1)# "を使用しています。
 
     [Real Host]
-    RH$ ping 172.18.100.101
+    (RH)$ ping 172.18.100.101
 
     [node1]
     $ sudo docker exec -it node1 bash
-    node1# ping 172.18.100.100
+    (node1)# ping 172.18.100.100
 
 またノード同士を接続することもできます。
 
@@ -103,10 +103,10 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ ./ctl2ctl.sh connect node1 172.18.0.1/24 node2 172.18.0.2/24
 
     [node1]
-    node1# ping 172.18.0.2
+    (node1)# ping 172.18.0.2
 
     [node2]
-    node2# ping 172.18.0.1
+    (node2)# ping 172.18.0.1
 
 ![node](https://github.com/yuno-x/ctlvnet/raw/img/node.png)
 
@@ -142,9 +142,9 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
 試しにnode1からnode2, node3へpingを送ってみます。  
 
     [node1]
-    node1# ping 172.18.0.2
+    (node1)# ping 172.18.0.2
     ^C
-    node1# ping 172.18.0.3
+    (node1)# ping 172.18.0.3
     ^C
 
 疎通を確認することができるはずです。  
@@ -163,7 +163,7 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ sudo ip address add 172.18.0.100/24 dev br0
 
     [node1]
-    node1# ping 172.18.0.100
+    (node1)# ping 172.18.0.100
     ^C
 
 疎通を確認できるはずです。
@@ -175,7 +175,7 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     $ ./ctl2net.sh connect br0 - br1 -
 
     [node1]
-    node1# ping 172.18.0.5
+    (node1)# ping 172.18.0.5
     ^C
 
 これでブリッジbr0, br1を経由したnode1とnode5のパケット転送を行えたことを確認できました。  
@@ -208,7 +208,7 @@ MACアドレステーブルにブリッジに埋め込まれているインタ�
 さて、ではnodeAからnodeBへパケットを送ってみましょう。
 
     [nodeA]
-    nodeA# ping 10.0.0.1
+    (nodeA)# ping 10.0.0.1
     ping: connect: Network is unreachable
 
 上記のように送れないはずです。  
@@ -216,7 +216,7 @@ MACアドレステーブルにブリッジに埋め込まれているインタ�
 試しにルーティングテーブルを確認してみましょう。  
 
     [nodeA]
-    nodeA# ip route
+    (nodeA)# ip route
     172.18.0.0/24 dev veth0 proto kernel scope link src 172.18.0.1
 
 172.18.0.0/24 はルートの目的地となるネットワークセグメントです。  
@@ -228,15 +228,15 @@ src 172.18.0.1 は 172.18.0.1 というIPアドレスを使用してパケット
 ここでルーティングテーブルに 10.0.0.0/24 へのルート情報を登録してpingを送ってみましょう。
 
     [nodeA]
-    nodeA# ip route add 10.0.0.0/24 via 172.18.0.1
-    nodeA# ping 10.0.0.1
+    (nodeA)# ip route add 10.0.0.0/24 via 172.18.0.1
+    (nodeA)# ping 10.0.0.1
     ^C
 
 返答がありません。これはたとえnodeBにpingパケットが届いたとしてもnodeBがnodeAへのルート情報を登録していないため返答をすることができないからです。  
 nodeBへパケットが届いているか否かはnodeBでパケットキャプチャをすることで確認できます。
 
     [nodeB]
-    nodeB# tcpdump -ln# icmp                      
+    (nodeB)# tcpdump -ln# icmp                      
     tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
     listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes
         1  22:06:23.930002 IP 172.18.0.1 > 10.0.0.1: ICMP echo request, id 7, seq 1, length 64
@@ -260,10 +260,10 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
 このようにすると、nodeAからnodeBへのpingが疎通します。
 
     [nodeB]
-    nodeB# ip route add 172.18.0.0/24 via 10.0.0.254
+    (nodeB)# ip route add 172.18.0.0/24 via 10.0.0.254
 
     [nodeA]
-    nodeA# ping 10.0.0.1
+    (nodeA)# ping 10.0.0.1
     PING 10.0.0.1 (10.0.0.1) 56(84) bytes of data.
     64 bytes from 10.0.0.1: icmp_seq=1 ttl=63 time=0.077 ms
     64 bytes from 10.0.0.1: icmp_seq=2 ttl=63 time=0.072 ms
@@ -419,6 +419,7 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
     $ ./ctl2net.sh connect rt1 110.110.110.1/24 rt2 110.110.110.2/24
     $ ./ctl2net.sh connect rt2 120.120.120.1/24 rt3 120.120.120.2/24
     $ ./ctl2net.sh connect rt2 130.130.130.1/24 rt4 130.130.130.2/24
+                                                                                                               
 
 これで確実に想定通りのネットワーク構成になっているはずです。
 これでダイナミックルーティングの準備ができました。
@@ -428,8 +429,119 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
 RIPは最もシンプルなルーティングプロトコルの一つです。
 RIPを使用しているルータは自分が属しているセグメントを他のRIPを使用しているルータへ広告し、広告を受け取ったルータは自動的に適切なルート情報をルーティングテーブルへ追加します。
 つまり、スタティックルーティングでは自分自身にルート情報を登録していたが、ダイナミックルーティングでは同じルーティングプロトコルを使用しているルータにルート情報を登録させます。  
-今回ダイナミックルーティングを行うためにノードにquaggaというダイナミックルーティングを行うソフトウェアをインストールしている。
-quaggaはCiscoルータライクのコマンドによって操作することができ、Ciscoルータを用いたネットワークの構築を練習することができる。
+今回のダイナミックルーティングを行うためにノードにquaggaというダイナミックルーティングを行うソフトウェアをインストールしています。
+quaggaはCiscoルータライクのコマンドによって操作することができ、Ciscoルータを用いたネットワークの構築を練習することができます。
 
-quaggaでルーティングの設定を行うにはいくつか方法があるが、vtyshを使用するとCiscoルータのような操作が可能となる。
-以下ではルータrt0をRIPルータとして使用する上で、広告するセグメント情報の設定を行っている。
+quaggaでルーティングの設定を行うにはいくつか方法がありますが、vtyshを使用するとCiscoルータのような操作が可能です。
+以下ではルータrt0をRIPルータとして使用する上で、広告するセグメント情報の設定を行っています。
+
+    [rt0]
+    (rt0)# vtysh
+    rt0# configure terminal
+    rt0(config)# router rip
+    rt0(config-router)# network 172.18.1.0/24
+    rt0(config-router)# network 172.18.2.0/24
+    rt0(config-router)# network 100.100.100.0/24
+    rt0(config-router)# exit
+    rt0(config)# exit
+    rt0# exit
+
+"rt0#"はvtyshのプロンプトで、Ciscoルータの特権EXECモードに相当するコマンドラインです。
+ここで configure terminal コマンドを実行すればグローバルコンフィグレーションモード(プロンプト: "rt0(config)#")に遷移できます。
+このモードで一般的な設定を行います。
+RIPルータを有効にし、当該ルータを設定するモードであるルーティングプロトコルコンフィグレーションモード(プロンプト: "rt0(config-router)#")に遷移します。
+ここでnetworkコマンドでrt0が属している広告したいセグメント情報を設定します。
+rt0は172.18.1.0/24, 172.18.2.0/24, 100.100.100.0/24に属しており、何も考えずとりあえずこれら全てのセグメントを広告しましょう。
+このようにすると、他のRIPルータへルート情報を配布します。
+
+それでは他のルータもRIPの設定をしましょう。
+
+    [rt1]
+    (rt1)# vtysh
+    rt1# configure terminal 
+    rt1(config)# router rip
+    rt1(config-router)# network 100.100.100.0/24
+    rt1(config-router)# network 110.110.110.0/24
+    rt1(config-router)# exit
+    rt1(config)# exit
+    rt1# exit
+
+    [rt2]
+    (rt2)# vtysh
+    rt2# configure terminal 
+    rt2(config)# router rip
+    rt2(config-router)# network 110.110.110.0/24
+    rt2(config-router)# network 120.120.120.0/24
+    rt2(config-router)# network 130.130.130.0/24
+    rt2(config-router)# exit
+    rt2(config)# exit
+    rt2# exit
+
+    [rt3]
+    (rt3)# vtysh
+    rt3# configure terminal 
+    rt3(config)# router rip
+    rt3(config-router)# network 120.120.120.0/24
+    rt3(config-router)# network 10.0.3.0/24
+    rt3(config-router)# exit
+    rt3(config)# exit
+    rt3# exit
+
+    [rt4]
+    (rt4)# vtysh
+    rt4# configure terminal 
+    rt4(config)# router rip
+    rt4(config-router)# network 130.130.130.0/24
+    rt4(config-router)# network 192.168.4.0/24
+    rt4(config-router)# exit
+    rt4(config)# exit
+    rt4# exit
+
+さて、各ルータに全てのルート情報を登録するよりもずっとシンプルで分かりやすいと思います。
+これがダイナミックルーティングの真骨頂です。 
+さて、このままではまだnodeA1からnodeC1やnodeD1へpingを送れません。
+そこで、各セグメントのルータにデフォルトゲートウェイを設定しましょう。
+
+    $ for NODE in nodeA1 nodeA2 nodeA3; do sudo docker exec -it $NODE ip route add default via 172.18.1.254; done
+    $ for NODE in nodeB1 nodeB2; do sudo docker exec -it $NODE ip route add default via 172.18.2.254; done
+    $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add default via 10.0.3.254; done
+    $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add default via 192.168.4.254; done
+
+これで任意のセグメントのノードから、異なるセグメントのノードへpingを送ることができます。 
+以上でRIPルータの設定の仕方が分かったと思いますが、RIPは前述した通り、最もシンプルなルーティングプロトコルの一つとなっており、
+収束（ルート情報の適用のスピード）が遅いことや、冗長構成でのブロードキャストストームへ対応できないことが欠点となっています。
+これを解決してくれるのがOSPFです。
+OSPFを設定する前に各ルータのRIP機能を停止しておきましょう。
+
+
+    [rt1]
+    (rt1)# vtysh
+    rt1# configure terminal 
+    rt1(config)# no router rip
+    rt1(config)# exit
+    rt1# exit
+
+    [rt2]
+    (rt2)# vtysh
+    rt2# configure terminal 
+    rt2(config)# no router rip
+    rt2(config)# exit
+    rt2# exit
+
+    [rt3]
+    (rt3)# vtysh
+    rt3# configure terminal 
+    rt3(config)# no router rip
+    rt3(config)# exit
+    rt3# exit
+
+    [rt4]
+    (rt4)# vtysh
+    rt4# configure terminal 
+    rt4(config)# no router rip
+    rt4(config)# exit
+    rt4# exit
+
+これでRIPのルーティングは停止します。
+
+### RIP (ダイナミックルーティング・プロトコル)
