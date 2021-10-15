@@ -407,7 +407,7 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
 さて、今のネットワーク構成は次のコマンドが実行されたときと同じ構成になっているはずです。
 きちんとネットワークが構成されてる自信がない方は以下のコマンドを実行してください。
 
-    $ ./rmcontainer.sh node rt0 rt1 rt2 rt3 rt4 nodeA1 nodeA2 nodeA3 nodeB1 nodeB2 nodeC1 nodeC2 nodeD1 nodeD2
+    $ ./rmcontainer.sh rt0 rt1 rt2 rt3 rt4 nodeA1 nodeA2 nodeA3 nodeB1 nodeB2 nodeC1 nodeC2 nodeD1 nodeD2
     $ ./ctl2net.sh delete brA brB brC brD
 
     $ ./mkcontainer.sh node rt0 rt1 rt2 rt3 rt4 nodeA1 nodeA2 nodeA3 nodeB1 nodeB2 nodeC1 nodeC2 nodeD1 nodeD2
@@ -513,6 +513,12 @@ rt0は172.18.1.0/24, 172.18.2.0/24, 100.100.100.0/24に属しており、何も�
 これを解決してくれるのがOSPFです。
 OSPFを設定する前に各ルータのRIP機能を停止しておきましょう。
 
+    [rt0]
+    (rt0)# vtysh
+    rt0# configure terminal 
+    rt0(config)# no router rip
+    rt0(config)# exit
+    rt0# exit
 
     [rt1]
     (rt1)# vtysh
@@ -544,4 +550,4 @@ OSPFを設定する前に各ルータのRIP機能を停止しておきましょ�
 
 これでRIPのルーティングは停止します。
 
-### RIP (ダイナミックルーティング・プロトコル)
+### OSPF (ダイナミックルーティング・プロトコル)
