@@ -507,9 +507,25 @@ rt0は172.18.1.0/24, 172.18.2.0/24, 100.100.100.0/24に属しており、何も�
     $ for NODE in nodeC1 nodeC2; do sudo docker exec -it $NODE ip route add default via 10.0.3.254; done
     $ for NODE in nodeD1 nodeD2; do sudo docker exec -it $NODE ip route add default via 192.168.4.254; done
 
-これで任意のセグメントのノードから、異なるセグメントのノードへpingを送ることができます。 
+これで任意のセグメントのノードから、異なるセグメントのノードへpingを送ることができます。
+ip routeコマンドでルータのルーティングテーブルを確認するのも面白いかもしれません。
+例えばrt1のルーティングテーブルは次のようになっているはずです。
+
+    (rt1)# ip route
+    10.0.3.0/24 via 110.110.110.2 dev veth1 proto zebra metric 20 
+    100.100.100.0/24 dev veth0 proto kernel scope link src 100.100.100.2 
+    110.110.110.0/24 dev veth1 proto kernel scope link src 110.110.110.1 
+    120.120.120.0/24 via 110.110.110.2 dev veth1 proto zebra metric 20 
+    130.130.130.0/24 via 110.110.110.2 dev veth1 proto zebra metric 20 
+    172.18.1.0/24 via 100.100.100.1 dev veth0 proto zebra metric 20 
+    172.18.2.0/24 via 100.100.100.1 dev veth0 proto zebra metric 20 
+    192.168.4.0/24 via 110.110.110.2 dev veth1 proto zebra metric 20
+
+proto zebraの文字列が含まれているルート情報がquaggaによって登録されたルートです。
+172.18.1.0/24, 172.18.2.0/24がrt0から、120.120.120.0/24, 130.130.130.0/24, 10.0.3.0/24, 192.168.4.0/24がrt2から広告されたものであることが分かります。
+
 以上でRIPルータの設定の仕方が分かったと思いますが、RIPは前述した通り、最もシンプルなルーティングプロトコルの一つとなっており、
-収束（ルート情報の適用のスピード）が遅いことや、冗長構成でのブロードキャストストームへ対応できないことが欠点となっています。
+収束（ルート情報の適用のスピード）が遅いことや、ホップ数に大きな制限があること、冗長構成でのブロードキャストストームへ対応できないことが欠点となっています。
 これを解決してくれるのがOSPFです。
 OSPFを設定する前に各ルータのRIP機能を停止しておきましょう。
 
@@ -550,4 +566,103 @@ OSPFを設定する前に各ルータのRIP機能を停止しておきましょ�
 
 これでRIPのルーティングは停止します。
 
+
 ### OSPF (ダイナミックルーティング・プロトコル)
+
+OSPFによるルーティングを行うには以下の設定をします。
+
+    [rt0]
+    (rt0)# vtysh
+    rt0# configure terminal
+    rt0(config)# router ospf
+    rt0(config-router)# network 172.18.1.0/24 area 0
+    rt0(config-router)# network 172.18.2.0/24 area 0
+    rt0(config-router)# network 100.100.100.0/24 area 0
+    rt0(config-router)# exit
+    rt0(config)# exit
+    rt0# exit
+   
+    [rt1]
+    (rt1)# vtysh
+    rt1# configure terminal
+    rt1(config)# router ospf
+    rt1(config-router)# network 100.100.100.0/24 area 0
+    rt1(config-router)# network 110.110.110.0/24 area 0
+    rt1(config-router)# exit
+    rt1(config)# exit
+    rt1# exit
+
+    [rt2]
+    (rt2)# vtysh
+    rt2# configure terminal
+    rt2(config)# router ospf
+    rt2(config-router)# network 110.110.110.0/24 area 0
+    rt2(config-router)# network 120.120.120.0/24 area 0
+    rt2(config-router)# network 130.130.130.0/24 area 0
+    rt2(config-router)# exit
+    rt2(config)# exit
+    rt2# exit
+
+    [rt3]
+    (rt3)# vtysh
+    rt3# configure terminal
+    rt3(config)# router ospf
+    rt3(config-router)# network 120.120.120.0/24 area 0
+    rt3(config-router)# network 10.0.3.0/24 area 0
+    rt3(config-router)# exit
+    rt3(config)# exit
+    rt3# exit
+
+    [rt4]
+    (rt4)# vtysh
+    rt4# configure terminal
+    rt4(config)# router ospf
+    rt4(config-router)# network 130.130.130.0/24 area 0
+    rt4(config-router)# network 192.168.4.0/24 area 0
+    rt4(config-router)# exit
+    rt4(config)# exit
+    rt4# exit
+
+Ciscoルータとは若干コマンドは異なりますが、大方は同じです。
+これにより異なるセグメントのノード同士で通信ができることを確認することができます。
+
+企業内ネットワークではRIPよりもOSPFを利用することが多いです。
+ただし、企業外ネットワークではBGPというルーティングプロトコルが使われていることが多いです。  
+OSPFの設定をクリアするためには以下のコマンドを実行します。
+
+    [rt0]
+    (rt0)# vtysh
+    rt0# configure terminal 
+    rt0(config)# no router ospf
+    rt0(config)# exit
+    rt0# exit
+
+    [rt1]
+    (rt1)# vtysh
+    rt1# configure terminal 
+    rt1(config)# no router ospf
+    rt1(config)# exit
+    rt1# exit
+
+    [rt2]
+    (rt2)# vtysh
+    rt2# configure terminal 
+    rt2(config)# no router ospf
+    rt2(config)# exit
+    rt2# exit
+
+    [rt3]
+    (rt3)# vtysh
+    rt3# configure terminal 
+    rt3(config)# no router ospf
+    rt3(config)# exit
+    rt3# exit
+
+    [rt4]
+    (rt4)# vtysh
+    rt4# configure terminal 
+    rt4(config)# no router ospf
+    rt4(config)# exit
+    rt4# exit
+
+これでOSPFのルーティングは停止します。
