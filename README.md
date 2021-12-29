@@ -9,7 +9,7 @@
 
 ## 使い方
 構築する仮想ネットワークによって使用するツールが異なります。  
-以下はツールの使い方の説明に焦点を当てているため、その他コマンドの仕様などに関しては正確な説明に努めていますが、それを保証することはありません。
+以下はツールの使い方の説明に焦点を当てているため、その他コマンドの仕様などに関しては正確な説明に努めていますが、それを保証するものではありません。
 
 
 ### ペアインタフェースの作成
@@ -66,7 +66,7 @@ IPアドレスが割り振られました。しかし、pingコマンドなど�
     ~
 
 と表示されるはずです。  
-理由ははっきりとは分かりませんが(ループ防止？)、リプライが帰って来ないのは退屈です。  
+理由ははっきりとは分かりませんが、リプライが返って来ないとつまらないでしょう。  
 次は仮想ノードを作成して疎通を確認してみましょう。  
 
 その前にインタフェースを削除しましょう。
@@ -429,10 +429,10 @@ nodeBへパケットが届いているか否かはnodeBでパケットキャプ�
 RIPは最もシンプルなルーティングプロトコルの一つです。
 RIPを使用しているルータは自分が属しているセグメントを他のRIPを使用しているルータへ広告し、広告を受け取ったルータは自動的に適切なルート情報をルーティングテーブルへ追加します。
 つまり、スタティックルーティングでは自分自身にルート情報を登録していたが、ダイナミックルーティングでは同じルーティングプロトコルを使用しているルータにルート情報を登録させます。  
-今回のダイナミックルーティングを行うためにノードにquaggaというダイナミックルーティングを行うソフトウェアをインストールしています。
-quaggaはCiscoルータライクのコマンドによって操作することができ、Ciscoルータを用いたネットワークの構築を練習することができます。
+今回のダイナミックルーティングを行うためにノードにFRRoutingというダイナミックルーティングを行うソフトウェアをインストールしています。
+FRRoutingはCiscoルータライクのコマンドによって操作することができ、Ciscoルータを用いたネットワークの構築を練習することができます。
 
-quaggaでルーティングの設定を行うにはいくつか方法がありますが、vtyshを使用するとCiscoルータのような操作が可能です。
+FRRoutingでルーティングの設定を行うにはいくつか方法がありますが、vtyshを使用するとCiscoルータのような操作が可能です。
 以下ではルータrt0をRIPルータとして使用する上で、広告するセグメント情報の設定を行っています。
 
     [rt0]
@@ -521,7 +521,7 @@ ip routeコマンドでルータのルーティングテーブルを確認する
     172.18.2.0/24 via 100.100.100.1 dev veth0 proto zebra metric 20 
     192.168.4.0/24 via 110.110.110.2 dev veth1 proto zebra metric 20
 
-proto zebraの文字列が含まれているルート情報がquaggaによって登録されたルートです。
+proto zebraの文字列が含まれているルート情報がFRRoutingによって登録されたルートです。
 172.18.1.0/24, 172.18.2.0/24がrt0から、120.120.120.0/24, 130.130.130.0/24, 10.0.3.0/24, 192.168.4.0/24がrt2から広告されたものであることが分かります。
 
 以上でRIPルータの設定の仕方が分かったと思いますが、RIPは前述した通り、最もシンプルなルーティングプロトコルの一つとなっており、
@@ -626,8 +626,9 @@ OSPFによるルーティングを行うには以下の設定をします。
 Ciscoルータとは若干コマンドは異なりますが、大方は同じです。
 これにより異なるセグメントのノード同士で通信ができることを確認することができます。
 
-企業内ネットワークではRIPよりもOSPFを利用することが多いです。
-ただし、企業間ネットワークではRIPやOSPFといったいわゆるIGPは使用されず、
+企業内など統一された運用ポリシーで管理されたネットワーク、つまりAS(Autonomous System)内では
+RIPよりもOSPFを利用することが多いです。
+ただし、AS間ではRIPやOSPFといったいわゆるIGPは使用されず、
 EGPの一つであるBGPというルーティングプロトコルが使われていることが多いです。  
 OSPFの設定をクリアするためには以下のコマンドを実行します。
 
@@ -667,3 +668,117 @@ OSPFの設定をクリアするためには以下のコマンドを実行しま�
     rt4# exit
 
 これでOSPFのルーティングは停止します。
+
+
+### BGP (ダイナミックルーティング・プロトコル)
+
+次のネットワークを3つのASに分けます。IGPとしてOSPFを利用しています。
+
+![l3net](https://github.com/yuno-x/ctlvnet/raw/img/bgp.png)
+
+AS間でルーティングするには対向のASのEGPルーティングを行うルータと接続設定しなければいけません。
+そのため、BGPのようなEGPではネイバーを指定します。
+
+BGPによるルーティングを行うには以下の設定をします。
+
+    [rt0]
+    (rt0)# vtysh
+    rt0# configure terminal
+    rt0(config)# router bgp 100
+    rt0(config-router)# neighbor 100.100.100.2 remote-as 200
+    rt0(config-router)# network 172.18.1.0 mask 255.255.255.0
+    rt0(config-router)# network 172.18.2.0 mask 255.255.255.0
+    rt0(config-router)# exit
+    rt0(config)# exit
+    rt0# exit
+   
+    [rt1]
+    (rt1)# vtysh
+    rt1# configure terminal
+    rt1(config)# router bgp 200
+    rt1(config-router)# neighbor 100.100.100.1 remote-as 100
+    rt1(config-router)# neighbor 110.110.110.2 remote-as 300
+    rt1(config-router)# exit
+    rt1(config)# exit
+    rt1# exit
+
+    [rt2]
+    (rt2)# vtysh
+    rt2# configure terminal
+    rt2(config)# router bgp 300
+    rt2(config-router)# neighbor 110.110.110.1 remote-as 200
+    rt2(config-router)# network 10.0.3.0 mask 255.255.255.0
+    rt2(config-router)# network 192.168.4.0 mask 255.255.255.0
+    rt2(config-router)# exit
+    rt2(config)# router ospf
+    rt2(config-router)# redistribute bgp
+    rt2(config-router)# network 120.120.120.0/24 area 0
+    rt2(config-router)# network 130.130.130.0/24 area 0
+    rt2(config-router)# exit
+    rt2(config)# exit
+    rt2# exit
+
+    [rt3]
+    (rt3)# vtysh
+    rt3# configure terminal
+    rt3(config)# router ospf
+    rt3(config-router)# network 120.120.120.0/24 area 0
+    rt3(config-router)# network 10.0.3.0/24 area 0
+    rt3(config-router)# exit
+    rt3(config)# exit
+    rt3# exit
+
+    [rt4]
+    (rt4)# vtysh
+    rt4# configure terminal
+    rt4(config)# router ospf
+    rt4(config-router)# network 130.130.130.0/24 area 0
+    rt4(config-router)# network 192.168.4.0/24 area 0
+    rt4(config-router)# exit
+    rt4(config)# exit
+    rt4# exit
+
+今回はAS番号を100, 200, 300に分けました。
+BGPネイバーとしてIPアドレスとAS番号を指定し、そのBGPネイバーに渡したいルート情報を設定しています。
+ただし、rt2ではOSPFで広告したいルート情報にBGPで取得したルート情報を加えるために再配布の設定を行っています。
+これを行わないと普通、OSPFではOSPFルータが属しているネットワークの情報しか広告できず、
+rt3とrt4とそれらの配下がAS外部と通信できないことになります。
+
+このネットワークではAS内のネットワークが単純なのでAS内のネットワーク情報を外部に広告するのもそこまで大変ではありませんが、
+AS内のネットワークが変更になったときや複雑になったときに、AS内のネットワーク情報を外部に広告する設定の手間を軽くしたいです。
+そのようなときは今度はBGPで他のプロトコルで取得したルート情報を再配布すれば良いです。
+
+次はAS内部のネットワーク情報をBGPで再配布するときの設定です。
+まず、手動で設定したBGPで広告するネットワーク情報をクリアします。
+その後、ルータが属しているネットワーク情報や、OSPFで取得したルート情報を再配布するように設定をします。
+
+    [rt0]
+    (rt0)# vtysh
+    rt0# configure terminal
+    rt0(config)# router bgp 100
+    rt0(config-router)# no network 172.18.1.0 mask 255.255.255.0
+    rt0(config-router)# no network 172.18.2.0 mask 255.255.255.0
+    rt0(config-router)# redistribute connected
+    rt0(config-router)# exit
+    rt0(config)# exit
+    rt0# exit
+   
+    [rt2]
+    (rt2)# vtysh
+    rt2# configure terminal
+    rt2(config)# router bgp 300
+    rt2(config-router)# no network 10.0.3.0 mask 255.255.255.0
+    rt2(config-router)# no network 192.168.4.0 mask 255.255.255.0
+    rt2(config-router)# redistribute ospf
+    rt2(config-router)# exit
+    rt2(config)# exit
+    rt2# exit
+
+これでBGPで広告するネットワーク情報を手動で設定する必要がなくなりました。
+
+
+### まとめ
+さて、本ドキュメントでは静的ルーティングと動的ルーティングであるRIP、OSPF、BGPの設定例を示しました。
+しかし、もちろんもっと大きなネットワークを構成することができますし、FRRoutingにはさらに多くの機能があるため色々試してみると勉強になると思います。
+
+以上が本ツールの使い方となります。
