@@ -7,6 +7,11 @@ then
 fi
 
 sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
+sudo sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null
+sudo sysctl -w net.ipv4.tcp_l3mdev_accept=1 > /dev/null
+sudo sysctl -w net.ipv4.udp_l3mdev_accept=1 > /dev/null
+sudo sysctl -w net.ipv4.conf.default.rp_filter=0 > /dev/null
+sudo sysctl -w net.ipv4.conf.all.rp_filter=0 > /dev/null
 sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
 
 INAME=$1
@@ -19,10 +24,17 @@ do
     exit -1
   fi
 
-  sudo docker run -d --privileged --network none --hostname ${CNAME} --name ${CNAME} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
-  #sudo docker exec ${CNAME} bash -c "echo export DISPLAY=$DISPLAY >> ~/.bashrc"
+  sudo docker run -d --privileged --network none --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
+#  sudo docker run -d --privileged --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
+
   sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.ip_forward=1 > /dev/null"
+  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null"
+  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.tcp_l3mdev_accept=1 > /dev/null"
+  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.udp_l3mdev_accept=1 > /dev/null"
+  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.conf.default.rp_filter=0 > /dev/null"
+  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.conf.all.rp_filter=0 > /dev/null"
   sudo docker exec ${CNAME} bash -c "sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null"
+
 
   ID=`sudo docker ps -f "name=${CNAME}" --format '{{.ID}}'`
 
