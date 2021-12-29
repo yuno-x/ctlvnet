@@ -31,7 +31,6 @@ then
   exit -1
 fi
 
-#cat << EOF > /dev/null
 EXISTIMAGE=$(sudo docker images $IMAGENAME | grep -v "REPOSITORY")
 CNAME=$IMAGENAME
 
@@ -48,8 +47,7 @@ then
 fi
 sudo docker run --hostname ubuntu --name ubuntu --detach ubuntu bash -c "while [ 1 ]; do sleep 600; done"
 sudo docker commit ubuntu $IMAGENAME
-sudo docker rm -f `sudo docker ps -aq`
-#EOF
+sudo docker rm -f `sudo docker ps -qf "name=ubuntu"`
 
 
 sudo docker run --hostname $CNAME --name $CNAME --detach $IMAGENAME bash -c "while [ 1 ]; do sleep 600; done"
@@ -65,7 +63,13 @@ sudo docker exec -it $CNAME apt update
 sudo docker exec -it $CNAME apt-file update
 sudo docker exec -it $CNAME bash -c 'yes no | apt -y install wireshark'
 sudo docker exec -it $CNAME bash -c 'yes | unminimize'
-sudo docker exec -it $CNAME apt -y install tmux vim htop hexedit iproute2 iputils-ping inetutils-traceroute curl nmap telnet tcpdump apt-file w3m x11-apps git build-essential python3 openjdk-16-jdk systemd avahi-daemon man openssh-server openssh-client telnetd quagga apache2 php dsniff isc-dhcp-server mysql-server mysql-client
-sudo docker exec $CNAME bash -c 'for FILE in `ls /usr/share/doc/quagga-core/examples/*.sample`; do cp $FILE /etc/quagga/$(basename -s .sample $FILE); done'
+sudo docker exec -it $CNAME apt -y install apt-utils tmux vim htop hexedit iproute2 iputils-ping inetutils-traceroute curl nmap telnet tcpdump apt-file w3m x11-apps git build-essential python3 openjdk-16-jdk systemd avahi-daemon avahi-utils bind9 bind9utils man openssh-server openssh-client telnetd frr apache2 php dsniff isc-dhcp-server mysql-server mysql-client
+sudo docker exec $CNAME bash -c 'for FILE in `ls /usr/share/doc/frr/examples/*.sample`; do touch /etc/frr/$(basename -s .sample $FILE); done'
+
+sudo docker exec $CNAME sed -i "s/\(^[^#]*d\)=no/\1=yes/g" /etc/frr/daemons
+#sudo docker exec $CNAME sed -i "s/^\(ospfd=yes\)/\1\nospfd_instances=$(seq -s , 1 8)/g" /etc/frr/daemons
+sudo docker exec $CNAME systemctl disable systemd-timesyncd
+sudo docker exec $CNAME sed -i "s/#enable-reflector=no/#enable-reflector=no\nenable-reflector=yes/g" /etc/avahi/avahi-daemon.conf
+
 sudo docker commit $CNAME $IMAGENAME
-sudo docker rm -f `sudo docker ps -aq`
+sudo docker rm -f `sudo docker ps -qf "name=$CNAME"`
