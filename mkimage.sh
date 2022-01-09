@@ -23,6 +23,12 @@ then
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO apt-key add -
     $SUDO add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
     $SUDO apt -y install docker-ce
+    $SUDO bash -c 'cat <<EOF > /etc/docker/daemon.json
+{
+  "storage-driver": "vfs"
+}
+EOF'
+    $SUDO systemctl enable docker
   else
     echo "Install Canceled."
     exit -1
@@ -44,7 +50,7 @@ then
   exit -1
 fi
 
-$SUDO systemctl enable docker
+$SUDO systemctl start docker
 EXISTIMAGE=$($SUDO docker images $IMAGENAME | grep -v "REPOSITORY")
 CNAME=$IMAGENAME
 
