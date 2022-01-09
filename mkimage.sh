@@ -1,15 +1,28 @@
 #!/bin/bash
 
-if [ "`which docker`" == "" ]
+if [ "$( whoami )" == "root" ]
+then
+  SUDO=""
+else
+  if ! sudo echo -n
+  then
+    echo "You must have permission to use sudo command." >&2
+    exit -1
+  fi
+
+  SUDO=sudo
+fi
+
+if [ "$( which docker )" == "" ]
 then
   echo -n "Do you want to install docker? [y/n]: "
   read ANS
   if [ "$ANS" == "y" ]
   then
-    sudo apt -y install apt-transport-https ca-certificates curl software-properties-common
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
-    sudo apt -y install docker-ce
+    $SUDO apt -y install apt-transport-https ca-certificates curl software-properties-common
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO apt-key add -
+    $SUDO add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+    $SUDO apt -y install docker-ce
   else
     echo "Install Canceled."
     exit -1
@@ -31,7 +44,7 @@ then
   exit -1
 fi
 
-EXISTIMAGE=$(sudo docker images $IMAGENAME | grep -v "REPOSITORY")
+EXISTIMAGE=$($SUDO docker images $IMAGENAME | grep -v "REPOSITORY")
 CNAME=$IMAGENAME
 
 if [ "$EXISTIMAGE" != "" ]
@@ -40,36 +53,36 @@ then
   exit -1
 fi
 
-EXISTIMAGE=$(sudo docker images ubuntu | grep -v "REPOSITORY")
+EXISTIMAGE=$($SUDO docker images ubuntu | grep -v "REPOSITORY")
 if [ "$EXISTIMAGE" == "" ]
 then
-  sudo docker pull ubuntu
+  $SUDO docker pull ubuntu
 fi
-sudo docker run --hostname ubuntu --name ubuntu --detach ubuntu bash -c "while [ 1 ]; do sleep 600; done"
-sudo docker commit ubuntu $IMAGENAME
-sudo docker rm -f `sudo docker ps -qf "name=ubuntu"`
+$SUDO docker run --hostname ubuntu --name ubuntu --detach ubuntu bash -c "while [ 1 ]; do sleep 600; done"
+$SUDO docker commit ubuntu $IMAGENAME
+$SUDO docker rm -f `$SUDO docker ps -qf "name=ubuntu"`
 
 
-sudo docker run --hostname $CNAME --name $CNAME --detach $IMAGENAME bash -c "while [ 1 ]; do sleep 600; done"
-sudo docker exec $CNAME bash -c 'echo "Asia/Tokyo" > /etc/timezone'
-sudo docker exec $CNAME bash -c 'ln -s /usr/share/zoneinfo/Asia/Tokyo /etc/localtime'
-sudo docker exec $CNAME bash -c 'cat << EOF >> ~/.bashrc
+$SUDO docker run --hostname $CNAME --name $CNAME --detach $IMAGENAME bash -c "while [ 1 ]; do sleep 600; done"
+$SUDO docker exec $CNAME bash -c 'echo "Asia/Tokyo" > /etc/timezone'
+$SUDO docker exec $CNAME bash -c 'ln -s /usr/share/zoneinfo/Asia/Tokyo /etc/localtime'
+$SUDO docker exec $CNAME bash -c 'cat << EOF >> ~/.bashrc
 if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
     . /etc/bash_completion
 fi
 EOF'
 
-sudo docker exec -it $CNAME apt update
-sudo docker exec -it $CNAME apt-file update
-sudo docker exec -it $CNAME bash -c 'yes no | apt -y install wireshark'
-sudo docker exec -it $CNAME bash -c 'yes | unminimize'
-sudo docker exec -it $CNAME apt -y install apt-utils tmux vim htop hexedit iproute2 iputils-ping inetutils-traceroute curl nmap telnet tcpdump apt-file w3m x11-apps git build-essential python3 openjdk-16-jdk systemd avahi-daemon avahi-utils bind9 bind9utils man openssh-server openssh-client telnetd frr apache2 php dsniff isc-dhcp-server mysql-server mysql-client
-sudo docker exec $CNAME bash -c 'for FILE in `ls /usr/share/doc/frr/examples/*.sample`; do touch /etc/frr/$(basename -s .sample $FILE); done'
+$SUDO docker exec -it $CNAME apt update
+$SUDO docker exec -it $CNAME bash -c 'yes | unminimize'
+$SUDO docker exec -it $CNAME bash -c 'yes no | apt -y install wireshark'
+$SUDO docker exec -it $CNAME apt -y install bash-completion apt-utils tmux vim htop hexedit iproute2 iputils-ping traceroute curl nmap telnet tcpdump iptables apt-file w3m nkf x11-apps git build-essential python3 openjdk-16-jdk systemd avahi-daemon avahi-utils bind9 bind9utils man openssh-server openssh-client telnetd frr apache2 php dsniff isc-dhcp-server mysql-server mysql-client
+$SUDO docker exec -it $CNAME apt-file update
+$SUDO docker exec $CNAME bash -c 'for FILE in `ls /usr/share/doc/frr/examples/*.sample`; do touch /etc/frr/$(basename -s .sample $FILE); done'
 
-sudo docker exec $CNAME sed -i "s/\(^[^#]*d\)=no/\1=yes/g" /etc/frr/daemons
-#sudo docker exec $CNAME sed -i "s/^\(ospfd=yes\)/\1\nospfd_instances=$(seq -s , 1 8)/g" /etc/frr/daemons
-sudo docker exec $CNAME systemctl disable systemd-timesyncd
-sudo docker exec $CNAME sed -i "s/#enable-reflector=no/#enable-reflector=no\nenable-reflector=yes/g" /etc/avahi/avahi-daemon.conf
+$SUDO docker exec $CNAME sed -i "s/\(^[^#]*d\)=no/\1=yes/g" /etc/frr/daemons
+#$SUDO docker exec $CNAME sed -i "s/^\(ospfd=yes\)/\1\nospfd_instances=$(seq -s , 1 8)/g" /etc/frr/daemons
+$SUDO docker exec $CNAME systemctl disable systemd-timesyncd
+$SUDO docker exec $CNAME sed -i "s/#enable-reflector=no/#enable-reflector=no\nenable-reflector=yes/g" /etc/avahi/avahi-daemon.conf
 
-sudo docker commit $CNAME $IMAGENAME
-sudo docker rm -f `sudo docker ps -qf "name=$CNAME"`
+$SUDO docker commit $CNAME $IMAGENAME
+$SUDO docker rm -f `$SUDO docker ps -qf "name=$CNAME"`
