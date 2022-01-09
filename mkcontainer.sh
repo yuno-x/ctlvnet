@@ -18,14 +18,25 @@ INAME=$1
 
 for CNAME in ${@:2}
 do
+  NETFLAG=false
+  if echo $CNAME | grep "@$"
+  then
+    NETFLAG=true
+    CNAME=$( echo $CNAME | sed s/@$//g )
+  fi
+
   if [ "`ip netns | grep -w ${CNAME}`" != "" ]
   then
     echo "Network netspace \"${CNAME}\" already exists." >&2
     exit -1
   fi
 
-  sudo docker run -d --privileged --network none --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
-#  sudo docker run -d --privileged --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
+  if $NETFLAG
+  then
+    sudo docker run -d --privileged --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
+  else
+    sudo docker run -d --privileged --network none --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
+  fi
 
   sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.ip_forward=1 > /dev/null"
   sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null"
