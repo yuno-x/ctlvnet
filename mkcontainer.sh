@@ -6,13 +6,30 @@ then
   exit -1
 fi
 
-sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
-sudo sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null
-sudo sysctl -w net.ipv4.tcp_l3mdev_accept=1 > /dev/null
-sudo sysctl -w net.ipv4.udp_l3mdev_accept=1 > /dev/null
-sudo sysctl -w net.ipv4.conf.default.rp_filter=0 > /dev/null
-sudo sysctl -w net.ipv4.conf.all.rp_filter=0 > /dev/null
-sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
+if [ "$( whoami )" == "root" ]
+then
+  SUDO=""
+else
+  if ! sudo echo -n
+  then
+    echo "You must have permission to use sudo command." >&2
+    exit -1
+  fi
+
+  SUDO=sudo
+fi
+
+NETSET="
+$SUDO sysctl -w net.ipv4.ip_forward=1 > /dev/null
+$SUDO sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null
+$SUDO sysctl -w net.ipv4.tcp_l3mdev_accept=1 > /dev/null
+$SUDO sysctl -w net.ipv4.udp_l3mdev_accept=1 > /dev/null
+$SUDO sysctl -w net.ipv4.conf.default.rp_filter=0 > /dev/null
+$SUDO sysctl -w net.ipv4.conf.all.rp_filter=0 > /dev/null
+$SUDO sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
+"
+
+SUDO="$SUDO" bash -c '$NETSET'
 
 INAME=$1
 
@@ -33,21 +50,14 @@ do
 
   if $NETFLAG
   then
-    sudo docker run -d --privileged --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
+    $SUDO docker run -d --privileged --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
   else
-    sudo docker run -d --privileged --network none --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
+    $SUDO docker run -d --privileged --network none --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
   fi
 
-  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.ip_forward=1 > /dev/null"
-  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null"
-  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.tcp_l3mdev_accept=1 > /dev/null"
-  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.udp_l3mdev_accept=1 > /dev/null"
-  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.conf.default.rp_filter=0 > /dev/null"
-  sudo docker exec ${CNAME} bash -c "sysctl -w net.ipv4.conf.all.rp_filter=0 > /dev/null"
-  sudo docker exec ${CNAME} bash -c "sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null"
+  SUDO="$SUDO" $SUDO docker exec ${CNAME} bash -c '$NETSET'
 
-
-  ID=`sudo docker ps -f "name=${CNAME}" --format '{{.ID}}'`
+  ID=`$SUDO docker ps -f "name=${CNAME}" --format '{{.ID}}'`
 
   SYSTEMD_PID=$(
   for PP in `pgrep -f ${ID}`
@@ -64,8 +74,8 @@ do
 
   if [ ! -d /var/run/netns ]
   then
-    sudo mkdir /var/run/netns
+    $SUDO mkdir /var/run/netns
   fi
 
-  sudo ln -s /proc/${SYSTEMD_PID}/ns/net /var/run/netns/${CNAME}
+  $SUDO ln -s /proc/${SYSTEMD_PID}/ns/net /var/run/netns/${CNAME}
 done
