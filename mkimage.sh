@@ -44,6 +44,7 @@ then
   exit -1
 fi
 
+$SUDO systemctl enable docker
 EXISTIMAGE=$($SUDO docker images $IMAGENAME | grep -v "REPOSITORY")
 CNAME=$IMAGENAME
 
@@ -53,7 +54,7 @@ then
   exit -1
 fi
 
-EXISTIMAGE=$($SUDO docker images ubuntu | grep -v "REPOSITORY")
+EXISTIMAGE=$($SUDO docker images ubuntu | grep -v "REPOSITORY" 2> /dev/null)
 if [ "$EXISTIMAGE" == "" ]
 then
   $SUDO docker pull ubuntu
