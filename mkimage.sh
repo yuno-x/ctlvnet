@@ -50,7 +50,7 @@ then
   exit -1
 fi
 
-$SUDO systemctl start docker
+$SUDO systemctl restart docker
 EXISTIMAGE=$($SUDO docker images $IMAGENAME | grep -v "REPOSITORY")
 CNAME=$IMAGENAME
 
