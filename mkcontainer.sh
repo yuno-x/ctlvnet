@@ -19,7 +19,7 @@ INAME=$1
 for CNAME in ${@:2}
 do
   NETFLAG=false
-  if echo $CNAME | grep "@$"
+  if echo $CNAME | grep "@$" > /dev/null
   then
     NETFLAG=true
     CNAME=$( echo $CNAME | sed s/@$//g )
