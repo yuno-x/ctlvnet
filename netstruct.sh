@@ -1,14 +1,11 @@
 #!/bin/bash
 
+PWD="$(dirname $0)"
+source $PWD/modules/check.sh
+
 function  devinfo()
 {
-  if ! sudo ip link > /dev/null 2>&1
-  then
-    echo -e "You seem not to have enough permission or commands. Exit.." >&2
-
-    exit -1
-  fi
-
+  ctlv_set_SUDO
 
   ISBR=$(grep -w "DEVTYPE=bridge" /sys/class/net/$1/uevent)
   if [ "$ISBR" == "" ]
@@ -42,7 +39,7 @@ function  devinfo()
   declare -A NSIPADDR
   for NS in $(ip netns list)
   do
-    NSIPADDR["$NS"]="$(sudo ip netns exec $NS ip address)"
+    NSIPADDR["$NS"]="$($SUDO ip netns exec $NS ip address)"
   done
 
   DEVDEVOUTPUT=""
@@ -111,13 +108,13 @@ function  devinfo()
           LINKDEV=$(echo "${NSIPADDR["$NS"]}" | sed -n "s/^$LINK: \([^@:]*\).*/\1/gp" )
           if [ "$LINKDEV" != "" ]
           then
-            IPADDRS=$(sudo ip netns exec $NS ip address show $LINKDEV | sed -n "s/.*inet \([0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+\/[0-9]\+\).*/\1/gp")
+            IPADDRS=$($SUDO ip netns exec $NS ip address show $LINKDEV | sed -n "s/.*inet \([0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+\/[0-9]\+\).*/\1/gp")
             if [ "$IPADDRS" == "" ]
             then
               IPADDRS="-"
             fi
 
-            MADDR=$(sudo ip netns exec $NS ip address show $LINKDEV | sed -n "s/.*link\/[^ ]* \([0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].\).*/\1/gp")
+            MADDR=$($SUDO ip netns exec $NS ip address show $LINKDEV | sed -n "s/.*link\/[^ ]* \([0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].\).*/\1/gp")
             if [ "$MADDR" == "" ]
             then
               MADDR="-"
@@ -154,13 +151,7 @@ function  devinfo()
 
 function  nodeinfo()
 {
-  if ! sudo ip link > /dev/null 2>&1
-  then
-    echo -e "You seem not to have enough permission or commands. Exit.." >&2
-
-    exit -1
-  fi
-
+  ctlv_set_SUDO
 
   echo -e "################  $1  ################"
   echo -e "[Info]"
@@ -169,24 +160,24 @@ function  nodeinfo()
   declare -A NSIPADDR
   for NS in $(ip netns list)
   do
-    NSIPADDR["$NS"]="$(sudo ip netns exec $NS ip address)"
+    NSIPADDR["$NS"]="$($SUDO ip netns exec $NS ip address)"
   done
 
   DEVDEVOUTPUT=""
   CONOUTPUT=""
   DEVIDX=1
-  for DEVDIRS in `sudo ip netns exec $1 ls /sys/class/net/`
+  for DEVDIRS in $($SUDO ip netns exec $1 ls /sys/class/net/)
   do
     DEV=$(basename $DEVDIRS)
     DEVOUTPUT="${DEVOUTPUT}$DEVIDX: $DEV\n"
 
-    IPADDRS=$(sudo ip netns exec $1 ip address show $DEV | sed -n "s/.*inet \([0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+\/[0-9]\+\).*/\1/gp")
+    IPADDRS=$($SUDO ip netns exec $1 ip address show $DEV | sed -n "s/.*inet \([0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+\/[0-9]\+\).*/\1/gp")
     if [ "$IPADDRS" == "" ]
     then
       IPADDRS="-"
     fi
 
-    MADDR=$(sudo ip netns exec $1 ip address show $DEV | sed -n "s/.*link\/[^ ]* \([0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].\).*/\1/gp")
+    MADDR=$($SUDO ip netns exec $1 ip address show $DEV | sed -n "s/.*link\/[^ ]* \([0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].\).*/\1/gp")
     if [ "$MADDR" == "" ]
     then
       MADDR="-"
@@ -199,8 +190,8 @@ function  nodeinfo()
     done
     DEVOUTPUT="${DEVOUTPUT}MADDR: $MADDR)\n"
 
-    LINK=$(sudo ip netns exec $1 cat /sys/class/net/$DEV/iflink)
-    if [ "$(sudo ip netns exec $1 cat /sys/class/net/$DEV/ifindex)" != "$LINK" ]
+    LINK=$($SUDO ip netns exec $1 cat /sys/class/net/$DEV/iflink)
+    if [ "$($SUDO ip netns exec $1 cat /sys/class/net/$DEV/ifindex)" != "$LINK" ]
     then
       LINKDEV=$(ip address | sed -n "s/^$LINK: \([^@:]*\).*/\1/gp" )
       if [ "$LINKDEV" != "" ]
@@ -238,13 +229,13 @@ function  nodeinfo()
           LINKDEV=$(echo "${NSIPADDR["$NS"]}" | sed -n "s/^$LINK: \([^@:]*\).*/\1/gp" )
           if [ "$LINKDEV" != "" ]
           then
-            IPADDRS=$(sudo ip netns exec $NS ip address show $LINKDEV | sed -n "s/.*inet \([0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+\/[0-9]\+\).*/\1/gp")
+            IPADDRS=$($SUDO ip netns exec $NS ip address show $LINKDEV | sed -n "s/.*inet \([0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+\/[0-9]\+\).*/\1/gp")
             if [ "$IPADDRS" == "" ]
             then
               IPADDRS="-"
             fi
 
-            MADDR=$(sudo ip netns exec $NS ip address show $LINKDEV | sed -n "s/.*link\/[^ ]* \([0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].\).*/\1/gp")
+            MADDR=$($SUDO ip netns exec $NS ip address show $LINKDEV | sed -n "s/.*link\/[^ ]* \([0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].:[0-9a-f].\).*/\1/gp")
             if [ "$MADDR" == "" ]
             then
               MADDR="-"
