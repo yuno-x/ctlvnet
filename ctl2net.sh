@@ -1,5 +1,8 @@
 #!/bin/bash
 
+PWD="$(dirname $0)"
+source $PWD/modules/check.sh
+
 function  printhelp()
 {
   case $1 in
@@ -49,61 +52,47 @@ function  printhelp()
 
 function  printversion()
 {
-      echo -e "$0 ver.0.92"
-      echo -e "Copyright (C) 2021 Masanori Yuno (github: yuno-x)."
+      echo -e "$0 ver.0.93"
+      echo -e "Copyright (C) 2023 Masanori Yuno (github: yuno-x)."
       echo -e "This is free software: you are free to change and redistribute it."
       echo -e "There is NO WARRANTY, to the extent permitted by law."
 }
 
 function  create_node()
 {
-  if ! sudo ip link > /dev/null 2>&1
-  then
-    echo -e "You seem not to have enough permission or commands. Exit.." >&2
-
-    exit -1
-  fi
-
-#  sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
-#  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
+  ctlv_check_commands ip
+  ctlv_set_SUDO
 
   BR=$1
-  sudo ip link add $BR type bridge
+  $SUDO ip link add $BR type bridge
 
   i=0
   for NODE in ${@:2}
   do
-    sudo ip link add c_veno0 type veth peer name ${BR}_veth$i
+    $SUDO ip link add c_veno0 type veth peer name ${BR}_veth$i
     if [ "`ip netns | grep -w $NODE`" == "" ]
     then
-      sudo ip netns add $NODE
+      $SUDO ip netns add $NODE
     fi
-    sudo ip link set ${BR}_veth$i master $BR
-    sudo ip link set c_veno0 netns $NODE
-    sudo ip link set ${BR}_veth$i up
-    sudo ip netns exec $NODE ip link set c_veno0 name veth0
-    sudo ip netns exec $NODE ip link set veth0 up
+    $SUDO ip link set ${BR}_veth$i master $BR
+    $SUDO ip link set c_veno0 netns $NODE
+    $SUDO ip link set ${BR}_veth$i up
+    $SUDO ip netns exec $NODE ip link set c_veno0 name veth0
+    $SUDO ip netns exec $NODE ip link set veth0 up
 
     i=$(( $i + 1 ))
   done
 
-  sudo ip link set $BR up
+  $SUDO ip link set $BR up
 }
 
 function  setup_node()
 {
-  if ! sudo ip link > /dev/null 2>&1
-  then
-    echo -e "You seem not to have enough permission or commands. Exit.." >&2
-
-    exit -1
-  fi
-
-#  sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
-#  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
+  ctlv_check_commands ip
+  ctlv_set_SUDO
 
   BR=$1
-  sudo ip link add $BR type bridge
+  $SUDO ip link add $BR type bridge
 
   i=0
   n=2
@@ -112,7 +101,7 @@ function  setup_node()
     NODE=${@:$n:1}
     ADDR=${@:$n+1:1}
     
-    IFNUM=`sudo ip netns exec $NODE ls /sys/class/net | sed -n "s/veth\([0-9]*\)/\1/gp" | sort -n | tail -n 1`
+    IFNUM=`$SUDO ip netns exec $NODE ls /sys/class/net | sed -n "s/veth\([0-9]*\)/\1/gp" | sort -n | tail -n 1`
     if [ "$IFNUM" == "" ]
     then
       NEWIFNUM=0
@@ -120,36 +109,32 @@ function  setup_node()
       NEWIFNUM=$(( $IFNUM + 1 ))
     fi
 
-    sudo ip link add c_veno0 type veth peer name ${BR}_veth$i
+    $SUDO ip link add c_veno0 type veth peer name ${BR}_veth$i
     if [ "`ip netns | grep -w $NODE`" == "" ]
     then
-      sudo ip netns add $NODE
+      $SUDO ip netns add $NODE
     fi
-    sudo ip link set ${BR}_veth$i master $BR
-    sudo ip link set c_veno0 netns $NODE
-    sudo ip link set ${BR}_veth$i up
-    sudo ip netns exec $NODE ip link set c_veno0 name veth${NEWIFNUM}
+    $SUDO ip link set ${BR}_veth$i master $BR
+    $SUDO ip link set c_veno0 netns $NODE
+    $SUDO ip link set ${BR}_veth$i up
+    $SUDO ip netns exec $NODE ip link set c_veno0 name veth${NEWIFNUM}
     if [ "$ADDR" != "-" ]
     then
-      sudo ip netns exec $NODE ip address add $ADDR dev veth${NEWIFNUM}
+      $SUDO ip netns exec $NODE ip address add $ADDR dev veth${NEWIFNUM}
     fi
-    sudo ip netns exec $NODE ip link set veth${NEWIFNUM} up
+    $SUDO ip netns exec $NODE ip link set veth${NEWIFNUM} up
 
     i=$(( $i + 1 ))
     n=$(( $n + 2 ))
   done
 
-  sudo ip link set $BR up
+  $SUDO ip link set $BR up
 }
 
 function  delete_node()
 {
-  if ! sudo ip link > /dev/null 2>&1
-  then
-    echo -e "You seem not to have enough permission or commands. Exit.." >&2
-
-    exit -1
-  fi
+  ctlv_check_commands ip
+  ctlv_set_SUDO
 
   for NODE in $@
   do
@@ -158,13 +143,13 @@ function  delete_node()
       BR=$NODE
       for BRIF in `ip link show master $BR type veth | sed -n "s/.*[ \t]\([^ \t]*\)@[^ \t]*:.*/\1/gp"`
       do
-        sudo ip link delete $BRIF
+        $SUDO ip link delete $BRIF
       done
-      sudo ip link delete $BR
+      $SUDO ip link delete $BR
 
     elif [ "`ip netns | grep -w $NODE`" != "" ]
     then
-      sudo ip netns delete $NODE
+      $SUDO ip netns delete $NODE
     else
       echo -e "$NODE does not exist as node or bridge." >&2
     fi
@@ -180,15 +165,8 @@ function  connect_node()
     exit -1
   fi
 
-  if ! sudo ip link > /dev/null 2>&1
-  then
-    echo -e "You seem not to have enough permission or commands. Exit.." >&2
-
-    exit -1
-  fi
-
-#  sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
-#  sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
+  ctlv_check_commands ip ls sed sort tail echo
+  ctlv_set_SUDO
 
   n=1
   while [ $n -lt $# ]
@@ -210,23 +188,23 @@ function  connect_node()
 
       if [ -d /sys/class/net/c_veno0 ]
       then
-        sudo ip link set c_veno0 name ${BR}_veth${NEWIFNUM}
+        $SUDO ip link set c_veno0 name ${BR}_veth${NEWIFNUM}
       else
-        sudo ip link add c_veno0 type veth peer ${BR}_veth${NEWIFNUM}
+        $SUDO ip link add c_veno0 type veth peer ${BR}_veth${NEWIFNUM}
       fi
 
-      sudo ip link set ${BR}_veth${NEWIFNUM} master $BR
+      $SUDO ip link set ${BR}_veth${NEWIFNUM} master $BR
 
       if [ "$ADDR" != "-" ]
       then
-        sudo ip address add $ADDR dev ${BR}_veth${NEWIFNUM}
+        $SUDO ip address add $ADDR dev ${BR}_veth${NEWIFNUM}
       fi
 
-      sudo ip link set ${BR}_veth${NEWIFNUM} up
+      $SUDO ip link set ${BR}_veth${NEWIFNUM} up
 
     elif [ "`ip netns | grep -w $NODE`" != "" ]
     then
-      IFNUM=`sudo ip netns exec $NODE ls /sys/class/net | sed -n "s/veth\([0-9]*\)/\1/gp" | sort -n | tail -n 1`
+      IFNUM=`$SUDO ip netns exec $NODE ls /sys/class/net | sed -n "s/veth\([0-9]*\)/\1/gp" | sort -n | tail -n 1`
       if [ "$IFNUM" == "" ]
       then
         NEWIFNUM=0
@@ -236,21 +214,21 @@ function  connect_node()
 
       if [ -d /sys/class/net/c_veno0 ]
       then
-        sudo ip link set c_veno0 netns $NODE
-        sudo ip netns exec $NODE ip link set c_veno0 name veth${NEWIFNUM}
+        $SUDO ip link set c_veno0 netns $NODE
+        $SUDO ip netns exec $NODE ip link set c_veno0 name veth${NEWIFNUM}
       else
-        sudo ip link add c_veno0 type veth peer c_venp0
-        sudo ip link set c_venp0 netns $NODE
-        sudo ip netns exec $NODE ip link set c_venp0 name veth${NEWIFNUM}
+        $SUDO ip link add c_veno0 type veth peer c_venp0
+        $SUDO ip link set c_venp0 netns $NODE
+        $SUDO ip netns exec $NODE ip link set c_venp0 name veth${NEWIFNUM}
       fi
 
 
       if [ "$ADDR" != "-" ]
       then
-        sudo ip netns exec $NODE ip address add $ADDR dev veth${NEWIFNUM}
+        $SUDO ip netns exec $NODE ip address add $ADDR dev veth${NEWIFNUM}
       fi
 
-      sudo ip netns exec $NODE ip link set veth${NEWIFNUM} up
+      $SUDO ip netns exec $NODE ip link set veth${NEWIFNUM} up
 
     elif [ "$NODE" == "-" ]
     then
@@ -264,17 +242,17 @@ function  connect_node()
 
       if [ -d /sys/class/net/c_veno0 ]
       then
-        sudo ip link set c_veno0 name veth${NEWIFNUM}
+        $SUDO ip link set c_veno0 name veth${NEWIFNUM}
       else
-        sudo ip link add c_veno0 type veth peer veth${NEWIFNUM}
+        $SUDO ip link add c_veno0 type veth peer veth${NEWIFNUM}
       fi
 
       if [ "$ADDR" != "-" ]
       then
-        sudo ip address add $ADDR dev veth${NEWIFNUM}
+        $SUDO ip address add $ADDR dev veth${NEWIFNUM}
       fi
 
-      sudo ip link set veth${NEWIFNUM} up
+      $SUDO ip link set veth${NEWIFNUM} up
 
     else
       echo -e "$NODE does not exist as node or bridge." >&2
@@ -283,6 +261,7 @@ function  connect_node()
     n=$(( $n + 2 ))
   done
 }
+
 
 
 if [ "$1" == "" ] || [ "$1" == "help" ]
