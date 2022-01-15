@@ -1,23 +1,15 @@
 #!/bin/bash
 
+PWD="$(dirname $0)"
+source $PWD/modules/check.sh
+
 if [ "$1" == "" ]
 then
   echo "usage: $0 [CONTAINER NAME]..."
   exit -1
 fi
 
-if [ "$( whoami )" == "root" ]
-then
-  SUDO=""
-else
-  if ! sudo echo -n
-  then
-    echo "You must have permission to use sudo command." >&2
-    exit -1
-  fi
-
-  SUDO=sudo
-fi
+ctlv_set_SUDO
 
 for CNAME in $@
 do
