@@ -1,7 +1,6 @@
 #!/bin/bash
-
-PWD="$(dirname $0)"
-source $PWD/modules/check.sh
+cd "$(dirname $0)"
+source modules/check.sh
 
 ctlv_set_SUDO
 
@@ -36,7 +35,7 @@ then
 fi
 IMAGENAME=$1
 
-REQUIRED_PACKAGE="bash-completion apt-utils tmux vim htop iproute2 iputils-ping traceroute curl nmap telnet tcpdump iptables apt-file w3m git python3 systemd avahi-daemon avahi-utils bind9 bind9utils man openssh-server openssh-client telnetd frr apache2 dsniff isc-dhcp-server"
+REQUIRED_PACKAGE="bash-completion apt-utils tmux vim htop iproute2 iputils-ping traceroute curl nmap telnet tcpdump iptables nftables apt-file w3m git python3 systemd avahi-daemon avahi-utils bind9 bind9utils man openssh-server openssh-client telnetd frr apache2 dsniff isc-dhcp-server"
 SUGGESTED_PACKAGE="wireshark hexedit nkf x11-apps build-essential openjdk-16-jdk php mysql-server mysql-client"
 cat <<EOF
 Following packages are required (must be installed to a designated image):

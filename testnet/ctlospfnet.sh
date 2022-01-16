@@ -1,7 +1,6 @@
 #!/bin/bash
-
-cd $(dirname $0)
-cd ../
+set -e
+cd $(dirname $0)/../
 
 function  printhelp()
 {

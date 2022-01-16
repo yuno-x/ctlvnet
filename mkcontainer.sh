@@ -1,7 +1,7 @@
 #!/bin/bash
-
-PWD="$(dirname $0)"
-source $PWD/modules/check.sh
+cd "$(dirname $0)"
+source modules/check.sh
+source modules/letdef.sh
 
 if [ "$1" == "" ]
 then
@@ -14,18 +14,6 @@ fi
 
 ctlv_check_systemctl
 ctlv_set_SUDO
-
-NETSET='
-$SUDO sysctl -w net.ipv4.ip_forward=1 > /dev/null
-$SUDO sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null
-$SUDO sysctl -w net.ipv4.tcp_l3mdev_accept=1 > /dev/null
-$SUDO sysctl -w net.ipv4.udp_l3mdev_accept=1 > /dev/null
-$SUDO sysctl -w net.ipv4.conf.default.rp_filter=0 > /dev/null
-$SUDO sysctl -w net.ipv4.conf.all.rp_filter=0 > /dev/null
-$SUDO sysctl -w net.bridge.bridge-nf-call-iptables=0 > /dev/null
-'
-
-SUDO="$SUDO" bash -c "$NETSET"
 
 INAME=$1
 
@@ -52,7 +40,7 @@ do
     $SUDO docker run -d --privileged --network none --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
   fi
 
-  SUDO="$SUDO" $SUDO docker exec ${CNAME} bash -c "$NETSET"
+  SUDO="$SUDO" $SUDO docker exec ${CNAME} bash -c "$CTLV_SYSNETSET"
 
   ID=`$SUDO docker ps -f "name=${CNAME}" --format '{{.ID}}'`
 

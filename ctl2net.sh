@@ -1,7 +1,7 @@
 #!/bin/bash
-
-PWD="$(dirname $0)"
-source $PWD/modules/check.sh
+cd "$(dirname $0)"
+source modules/check.sh
+source modules/letdef.sh
 
 function  printhelp()
 {
@@ -53,7 +53,7 @@ function  printhelp()
 function  printversion()
 {
       echo -e "$0 ver.0.93"
-      echo -e "Copyright (C) 2023 Masanori Yuno (github: yuno-x)."
+      echo -e "Copyright (C) 2022 Masanori Yuno (github: yuno-x)."
       echo -e "This is free software: you are free to change and redistribute it."
       echo -e "There is NO WARRANTY, to the extent permitted by law."
 }
@@ -63,6 +63,7 @@ function  create_node()
   ctlv_check_commands ip
   ctlv_set_SUDO
 
+  SUDO="$SUDO" bash -c "$CTLV_SYSNETSET"
   BR=$1
   $SUDO ip link add $BR type bridge
 
@@ -91,6 +92,7 @@ function  setup_node()
   ctlv_check_commands ip
   ctlv_set_SUDO
 
+  SUDO="$SUDO" bash -c "$CTLV_SYSNETSET"
   BR=$1
   $SUDO ip link add $BR type bridge
 
