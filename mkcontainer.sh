@@ -3,12 +3,17 @@ cd "$(dirname $0)"
 source modules/check.sh
 source modules/letdef.sh
 
-if [ "$1" == "" ]
-then
+function printhelp()
+{
   echo "usage: $0 [IMAGE NAME] [CONTAINER NAME]..." >&2
   echo >&2
   echo "If you add a character '@' at last of container name, its container is also connected to default docker network." >&2
-  
+}
+
+if [ "$1" == "" ]
+then
+  printhelp
+
   exit -1
 fi
 

@@ -52,7 +52,7 @@ function  printhelp()
 
 function  printversion()
 {
-      echo -e "$0 ver.0.93"
+      echo -e "$0 ver.0.94"
       echo -e "Copyright (C) 2022 Masanori Yuno (github: yuno-x)."
       echo -e "This is free software: you are free to change and redistribute it."
       echo -e "There is NO WARRANTY, to the extent permitted by law."
