@@ -1,7 +1,6 @@
 #!/bin/bash
-
-PWD="$(dirname $0)"
-source $PWD/modules/check.sh
+cd "$(dirname $0)"
+source modules/check.sh
 
 function  devinfo()
 {
