@@ -13,7 +13,7 @@ ctlv_set_SUDO
 
 for CNAME in $@
 do
-  $SUDO docker exec ${CNAME} systemctl halt
+  $SUDO docker exec ${CNAME} systemctl halt > /dev/null 2>&1
   $SUDO docker rm -f ${CNAME}
   if [ -h /var/run/netns/${CNAME} ]
   then
