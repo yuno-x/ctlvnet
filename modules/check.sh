@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 function ctlv_set_SUDO()
 {
