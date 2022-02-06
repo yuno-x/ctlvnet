@@ -5,9 +5,17 @@ source modules/letdef.sh
 
 function printhelp()
 {
-  echo "usage: $0 [IMAGE NAME] [CONTAINER NAME]..." >&2
-#  echo >&2
-#  echo "If you add a character '@' at last of container name, its container is also connected to default docker network." >&2
+  echo -e "$0    ver.0.94"
+  echo -e >&2
+  echo -e "Copyright (C) 2022 Masanori Yuno (github: yuno-x)."
+  echo -e "This is free software: you are free to change and redistribute it."
+  echo -e "There is NO WARRANTY, to the extent permitted by law."
+  echo -e >&2
+  echo -e "usage: $0 [IMAGE NAME] [CONTAINER NAME](:[FLAGS])..." >&2
+  echo -e >&2
+  echo -e "FLAGS:" >&2
+  echo -e "    n ... Connect the default network." >&2
+  echo -e "    i ... Start up with /sbin/init instead of /usr/bin/systemd" >&2
 }
 
 if [ "$1" == "" ]
@@ -27,28 +35,21 @@ do
   INITOPT="/usr/bin/systemd"
   NETOPT="--network none"
 
-  FLAGS="$(echo $CNAME | cut -d : -f 2 | sed 's/\(.\)/\1 /g')"
-  CNAME=$(echo $CNAME | cut -d : -f 1)
-  echo "Creating $CNAME..."
-
-  for FLAG in $FLAGS
-  do
-    case "$FLAG" in
-      "i") INITOPT="/sbin/init" ;;
-      "n") NETOPT="" ;;
-      *) echo "Cannot recognize option." >&2 ;;
-    esac
-  done
-
-#
-echo <<COMMENT > /dev/null
-  if echo $CNAME | grep "@$" > /dev/null
+  if echo $CNAME | grep :
   then
-    NETFLAG=true
-    CNAME=$( echo $CNAME | sed s/@$//g )
+    FLAGS="$(echo $CNAME | cut -d : -f 2 | sed 's/\(.\)/\1 /g')"
+    CNAME=$(echo $CNAME | cut -d : -f 1)
+    echo "Creating $CNAME..."
+
+    for FLAG in $FLAGS
+    do
+      case "$FLAG" in
+        "i") INITOPT="/sbin/init" ;;
+        "n") NETOPT="" ;;
+        *) echo "Cannot recognize option." >&2 ;;
+      esac
+    done
   fi
-COMMENT
-#
 
   if [ "`ip netns | grep -w ${CNAME}`" != "" ]
   then
@@ -56,13 +57,7 @@ COMMENT
     exit -1
   fi
 
-#  if $NETFLAG
-#  then
-  $SUDO docker run -d --privileged $NETOPT --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} $INITOPT
-#    $SUDO docker run -d --privileged --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /sbin/init # /usr/bin/systemd
-#  else
-#    $SUDO docker run -d --privileged --network none --hostname ${CNAME} --name ${CNAME} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /usr/bin/systemd
-#  fi
+  $SUDO docker run -d --privileged $NETOPT --hostname ${CNAME} --name ${CNAME} -e DISPLAY="${DISPLAY}" -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} $INITOPT
 
   SUDO="$SUDO" $SUDO docker exec ${CNAME} bash -c "$CTLV_SYSNETSET"
 
