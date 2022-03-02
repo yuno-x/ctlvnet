@@ -35,7 +35,7 @@ do
   INITOPT="/usr/bin/systemd"
   NETOPT="--network none"
 
-  if echo $CNAME | grep :
+  if echo $CNAME | grep : > /dev/null
   then
     FLAGS="$(echo $CNAME | cut -d : -f 2 | sed 's/\(.\)/\1 /g')"
     CNAME=$(echo $CNAME | cut -d : -f 1)
