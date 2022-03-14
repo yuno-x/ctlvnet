@@ -1,5 +1,16 @@
 #!/bin/bash
-set -e
+[ -z $CTLV_MODF_CHECK ] && CTLV_MODF_CHECK=true || return
+
+function prevdup()
+{
+  if eval [ -z '$'$1 ]
+  then
+    eval $1=true
+    return  0
+  fi
+
+  return  1
+}
 
 function ctlv_set_SUDO()
 {
