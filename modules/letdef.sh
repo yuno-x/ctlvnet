@@ -1,4 +1,5 @@
 #!/bin/bash
+[ -z $CTLV_MODF_CHECK ] && CTLV_MODF_CHECK=true || return
 
 CTLV_SYSNETSET='
 $SUDO sysctl -w net.ipv4.ip_forward=1 > /dev/null
