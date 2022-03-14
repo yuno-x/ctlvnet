@@ -15,7 +15,6 @@ function printhelp()
   echo -e >&2
   echo -e "FLAGS:" >&2
   echo -e "    n ... Connect the default network." >&2
-  echo -e "    i ... Start up with /sbin/init instead of /usr/bin/systemd" >&2
 }
 
 if [ "$1" == "" ]
@@ -32,7 +31,6 @@ INAME=$1
 
 for CNAME in ${@:2}
 do
-  INITOPT="/usr/bin/systemd"
   NETOPT="--network none"
 
   if echo $CNAME | grep : > /dev/null
@@ -44,7 +42,6 @@ do
     for FLAG in $FLAGS
     do
       case "$FLAG" in
-        "i") INITOPT="/sbin/init" ;;
         "n") NETOPT="" ;;
         *) echo "Cannot recognize option." >&2 ;;
       esac
@@ -57,7 +54,7 @@ do
     exit -1
   fi
 
-  $SUDO docker run -d --privileged $NETOPT --hostname ${CNAME} --name ${CNAME} -e DISPLAY="${DISPLAY}" -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} $INITOPT
+  $SUDO docker run -d --privileged $NETOPT --hostname ${CNAME} --name ${CNAME} -e DISPLAY="${DISPLAY}" -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:ro ${INAME} /sbin/init
 
   SUDO="$SUDO" $SUDO docker exec ${CNAME} bash -c "$CTLV_SYSNETSET"
 
