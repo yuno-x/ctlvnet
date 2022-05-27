@@ -2,14 +2,40 @@
 cd "$(dirname $0)"
 source modules/check.sh
 
-function ctlvnet_install()
+function	printhelp()
 {
-  ctlv_mod_install $@
+  CMD="$0"
+  SUBCMD="$1"
+  if [ "$SUBCMD" != "" ]
+  then
+    CMD="$CMD $SUBCMD"
+  fi
+
+  case $1 in
+    "install")
+      source mkimage.sh
+      printsubhelp
+      ;;
+    "create")
+      source mkcontainer.sh
+      printsubhelp
+      ;;
+    *)
+      echo $CMD
+      ;;
+  esac
 }
 
 
 function  ctlvnet_exec()
 {
+  if [ "$1" == "" ]
+  then
+    printhelp $SUBCMD
+
+    exit -1
+  fi
+
 	ctlv_set_SUDO
 	if [ "$2" == "" ]
 	then
@@ -19,17 +45,27 @@ function  ctlvnet_exec()
   fi
 }
 
-
-function	printhelp()
+function  ctlvnet_list()
 {
-  SUBCMD=$1
-  case $1 in
-    "install")
-      source mkimage.sh
-      printsubhelp
-      ;;
-  esac
+  ctlv_set_SUDO
+  $SUDO docker images
 }
+
+
+function  ctlvnet_save()
+{
+  if [ "$1" == "" ]
+  then
+    printhelp $SUBCMD
+
+    exit -1
+  fi
+
+  ctlv_set_SUDO
+  INAME=$($SUDO docker ps -f "name=$1" --format '{{.Image}}')
+  $SUDO docker commit $1 $INAME
+}
+
 
 
 function  ctlvnet_main()
@@ -45,19 +81,26 @@ function  ctlvnet_main()
 
 	case "$SUBCMD" in
 		"exec")
-			if [ "$2" == "" ]
-			then
-				printhelp $SUBCMD
-
-				exit -1
-			fi
-
 			ctlvnet_exec ${@:2}
+			;;
+		"save")
+			ctlvnet_save ${@:2}
+			;;
+		"list")
+			ctlvnet_list ${@:2}
 			;;
 		"install")
       source mkimage.sh
-      ctlvnet_install ${@:2}
+      ctlv_mod_install ${@:2}
 			;;
+    "create")
+      source mkcontainer.sh
+      ctlv_mod_mkcontainer ${@:2}
+      ;;
+    "delete")
+      source rmcontainer.sh
+      ctlv_mod_rmcontainer ${@:2}
+      ;;
 		*)
 			printhelp
 
@@ -65,5 +108,12 @@ function  ctlvnet_main()
 			;;
 	esac
 }
+
+CMD="$0"
+SUBCMD="$1"
+if [ "$SUBCMD" != "" ]
+then
+  CMD="$CMD $SUBCMD"
+fi
 
 ctlvnet_main $@
