@@ -3,7 +3,27 @@ cd "$(dirname $0)"
 
 function printsubhelp()
 {
-  echo "usage: $0 $SUBCMD [Image Name]" >&2
+  echo "usage: $CMD [Image Name]" >&2
+}
+
+function ctlv_mod_not_installed_sw()
+{
+  local INSTALL_PACKAGE=""
+  ctlv_set_SUDO
+  for PACKAGE in ${@:2}
+  do
+    if ! $SUDO docker exec -it $1 apt list $PACKAGE | grep -F '[Installed]' > /dev/null
+    then
+      INSTALL_PACKAGE="$INSTALL_PACKAGE $PACKAGE"
+    fi
+  done
+
+  echo $INSTALL_PACKAGE
+}
+
+function ctlv_mod_update_sw()
+{
+  :
 }
 
 function ctlv_mod_install()
@@ -38,12 +58,13 @@ EOF'
   if [ "$1" == "" ]
   then
     printsubhelp
+
     exit -1
   fi
   IMAGENAME=$1
 
-  REQUIRED_PACKAGE="bash-completion apt-utils tmux vim htop iproute2 iputils-ping traceroute curl nmap telnet tcpdump iptables nftables apt-file w3m git python3 systemd avahi-daemon avahi-utils bind9 bind9utils man openssh-server openssh-client telnetd frr apache2 dsniff isc-dhcp-server isc-dhcp-client network-manager"
-  SUGGESTED_PACKAGE="wireshark hexedit nkf x11-apps build-essential openjdk-16-jdk php mysql-server mysql-client"
+  REQUIRED_PACKAGE="bash-completion apt-utils expect tmux vim htop iproute2 iputils-ping iputils-arping iperf3 traceroute curl nmap telnet netcat tcpdump iptables nftables apt-file lsof w3m git python3 systemd avahi-daemon avahi-utils bind9 bind9utils bind9-dnsutils man openssh-server openssh-client telnetd frr apache2 dsniff isc-dhcp-server isc-dhcp-client network-manager"
+  SUGGESTED_PACKAGE="wireshark ncat hexedit nkf x11-apps build-essential openjdk-18-jdk php mysql-server mysql-client"
   cat <<EOF
 Following packages are required (must be installed to a designated image):
   $REQUIRED_PACKAGE
@@ -106,17 +127,34 @@ EOF'
 
   $SUDO docker exec -it $CNAME apt update
   $SUDO docker exec -it $CNAME bash -c 'yes | unminimize'
+
   if echo $INSTALL_PACKAGE | grep -w "wireshark" > /dev/null
   then
     INSTALL_PACKAGE="$(echo $INSTALL_PACKAGE | sed 's/ wireshark[^ ]*//g')"
     $SUDO docker exec -it $CNAME bash -c 'yes no | apt -y install wireshark'
   fi
+
   $SUDO docker exec -it $CNAME apt -y install $INSTALL_PACKAGE
+  $SUDO docker exec -it $CNAME apt -yd install isc-dhcp-relay
+
   $SUDO docker exec -it $CNAME apt-file update
-  $SUDO docker exec $CNAME bash -c 'for FILE in `ls /usr/share/doc/frr/examples/*.sample`; do touch /etc/frr/$(basename -s .sample $FILE); done'
+  $SUDO docker exec $CNAME bash -c 'for FILE in /usr/share/doc/frr/examples/*.sample; do touch /etc/frr/$(basename -s .sample $FILE); done'
 
   $SUDO docker exec $CNAME sed -i "s/\(^[^#]*d\)=no/\1=yes/g" /etc/frr/daemons
   $SUDO docker exec $CNAME systemctl disable systemd-timesyncd
+
+  $SUDO docker exec $CNAME bash -c 'cat << EOF >> /etc/NetworkManager/NetworkManager.conf
+
+[keyfile]
+unmanaged-devices=
+
+[device-all]
+match-device=interface-name:*
+managed=true
+EOF'
+
+  $SUDO docker exec $CNAME systemctl disable network-manager
+  $SUDO docker exec $CNAME systemctl enable nftables
   $SUDO docker exec $CNAME sed -i "s/#enable-reflector=no/#enable-reflector=no\nenable-reflector=yes/g" /etc/avahi/avahi-daemon.conf
 
   $SUDO docker commit $CNAME $IMAGENAME
@@ -125,6 +163,6 @@ EOF'
 
 if [ -z "$SUBCMD" ]
 then
-  SUBCMD=$'\b'
+  CMD=$0
   ctlv_mod_install $@
 fi
