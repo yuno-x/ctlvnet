@@ -3,6 +3,13 @@ cd "$(dirname $0)"
 source modules/check.sh
 source modules/letdef.sh
 
+function sudo_()
+{
+  echo sudo $@ >&2
+  /usr/bin/sudo $@
+#  sleep 0.2
+}
+
 function  printhelp()
 {
   case $1 in
@@ -52,7 +59,7 @@ function  printhelp()
 
 function  printversion()
 {
-      echo -e "$0 ver.0.93"
+      echo -e "$0 ver.0.94"
       echo -e "Copyright (C) 2022 Masanori Yuno (github: yuno-x)."
       echo -e "This is free software: you are free to change and redistribute it."
       echo -e "There is NO WARRANTY, to the extent permitted by law."
@@ -170,12 +177,15 @@ function  connect_node()
   ctlv_check_commands ip ls sed sort tail echo
   ctlv_set_SUDO
 
+  NSIF=()
+
   n=1
   while [ $n -lt $# ]
   do
     NODE=${@:$n:1}
     ADDR=${@:$n+1:1}
 
+    NSIF+=( $NODE )
     if [ -d /sys/class/net/$NODE ]
     then
       BR=$NODE
@@ -197,16 +207,14 @@ function  connect_node()
 
       $SUDO ip link set ${BR}_veth${NEWIFNUM} master $BR
 
+      $SUDO ip link set ${BR}_veth${NEWIFNUM} up
       if [ "$ADDR" != "-" ]
       then
         $SUDO ip address add $ADDR dev ${BR}_veth${NEWIFNUM}
       fi
-
-      $SUDO ip link set ${BR}_veth${NEWIFNUM} up
-
     elif [ "`ip netns | grep -w $NODE`" != "" ]
     then
-      IFNUM=`$SUDO ip netns exec $NODE ls /sys/class/net | sed -n "s/veth\([0-9]*\)/\1/gp" | sort -n | tail -n 1`
+      IFNUM=`$SUDO ip netns exec $NODE ls /sys/class/net | sed -n "s/.*veth\([0-9]*\).*/\1/gp" | sort -n | tail -n 1`
       if [ "$IFNUM" == "" ]
       then
         NEWIFNUM=0
@@ -217,21 +225,24 @@ function  connect_node()
       if [ -d /sys/class/net/c_veno0 ]
       then
         $SUDO ip link set c_veno0 netns $NODE
+        $SUDO ip netns exec $NODE ip link set c_veno0 down
+        $SUDO ip netns exec $NODE ip -6 address flush dev c_veno0
         $SUDO ip netns exec $NODE ip link set c_veno0 name veth${NEWIFNUM}
       else
         $SUDO ip link add c_veno0 type veth peer c_venp0
+        $SUDO ip link set c_veno0 address $( printf 6a:80:%02x:%02x:%02x:%02x $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)) )
+        $SUDO ip link set c_venp0 address $( printf 6a:80:%02x:%02x:%02x:%02x $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)) )
+
         $SUDO ip link set c_venp0 netns $NODE
+        $SUDO ip netns exec $NODE ip link set c_venp0 down
         $SUDO ip netns exec $NODE ip link set c_venp0 name veth${NEWIFNUM}
       fi
 
-
+      NSIF+=( veth${NEWIFNUM} )
       if [ "$ADDR" != "-" ]
       then
         $SUDO ip netns exec $NODE ip address add $ADDR dev veth${NEWIFNUM}
       fi
-
-      $SUDO ip netns exec $NODE ip link set veth${NEWIFNUM} up
-
     elif [ "$NODE" == "-" ]
     then
       IFNUM=`ls /sys/class/net/ | sed -n "s/veth\([0-9]*\)/\1/gp" | sort -n | tail -n 1`
@@ -244,24 +255,26 @@ function  connect_node()
 
       if [ -d /sys/class/net/c_veno0 ]
       then
+        $SUDO ip link set c_veno0 down
         $SUDO ip link set c_veno0 name veth${NEWIFNUM}
       else
         $SUDO ip link add c_veno0 type veth peer veth${NEWIFNUM}
       fi
 
+      $SUDO ip link set veth${NEWIFNUM} up
       if [ "$ADDR" != "-" ]
       then
         $SUDO ip address add $ADDR dev veth${NEWIFNUM}
       fi
-
-      $SUDO ip link set veth${NEWIFNUM} up
-
     else
       echo -e "$NODE does not exist as node or bridge." >&2
     fi
 
     n=$(( $n + 2 ))
   done
+
+  $SUDO ip netns exec ${NSIF[0]} ip link set ${NSIF[1]} up
+  $SUDO ip netns exec ${NSIF[2]} ip link set ${NSIF[3]} up
 }
 
 
