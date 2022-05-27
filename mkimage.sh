@@ -64,7 +64,7 @@ EOF'
   IMAGENAME=$1
 
   REQUIRED_PACKAGE="bash-completion apt-utils expect tmux vim htop iproute2 iputils-ping iputils-arping iperf3 traceroute curl nmap telnet netcat tcpdump iptables nftables apt-file lsof w3m git python3 systemd avahi-daemon avahi-utils bind9 bind9utils bind9-dnsutils man openssh-server openssh-client telnetd frr apache2 dsniff isc-dhcp-server isc-dhcp-client network-manager"
-  SUGGESTED_PACKAGE="wireshark ncat hexedit nkf x11-apps build-essential openjdk-18-jdk php mysql-server mysql-client"
+  SUGGESTED_PACKAGE="wireshark ncat hexedit nkf x11-apps build-essential php mysql-server mysql-client openjdk-18-jdk"
   cat <<EOF
 Following packages are required (must be installed to a designated image):
   $REQUIRED_PACKAGE
