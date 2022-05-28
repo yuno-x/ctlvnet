@@ -1,11 +1,9 @@
 #!/bin/bash
 cd "$(dirname $0)"
-source modules/check.sh
-source modules/letdef.sh
 
 function printsubhelp()
 {
-  echo -e "$CMD    ver.0.94"
+  echo -e "$CMD    ver.0.95"
   echo -e >&2
   echo -e "Copyright (C) 2022 Masanori Yuno (github: yuno-x)."
   echo -e "This is free software: you are free to change and redistribute it."
@@ -15,11 +13,13 @@ function printsubhelp()
   echo -e >&2
   echo -e "FLAGS:" >&2
   echo -e "    n ... Connect the default network." >&2
-  echo -e "    b ... Run /bin/bash instead of /sbin/init." >&2
 }
 
 function ctlv_mod_mkcontainer()
 {
+  source modules/check.sh
+  source modules/letdef.sh
+
   if [ "$1" == "" ]
   then
     printsubhelp
@@ -29,6 +29,7 @@ function ctlv_mod_mkcontainer()
 
   ctlv_check_systemctl
   ctlv_set_SUDO
+  SUDO="" $SUDO bash -c "$CTLV_SYSNETSET"
 
   ulimit -Sn 65536
   ulimit -Hn 65536
@@ -38,7 +39,6 @@ function ctlv_mod_mkcontainer()
   for CNAME in ${@:2}
   do
     NETOPT="--network none"
-    INITCMD="/sbin/init"
 
     if echo $CNAME | grep : > /dev/null
     then
@@ -50,7 +50,6 @@ function ctlv_mod_mkcontainer()
       do
         case "$FLAG" in
           "n") NETOPT="" ;;
-          "b") NETOPT="/bin/bash" ;;
           *) echo "Cannot recognize option." >&2 ;;
         esac
       done
@@ -62,7 +61,7 @@ function ctlv_mod_mkcontainer()
       exit -1
     fi
     
-    $SUDO docker run -d --privileged $NETOPT --hostname ${CNAME} --name ${CNAME} --cgroupns host --cgroup-parent docker.slice  -e DISPLAY -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:rw ${INAME} ${INITCMD}
+    $SUDO docker run -d --privileged $NETOPT --hostname ${CNAME} --name ${CNAME} --cgroupns host --cgroup-parent docker.slice  -e DISPLAY -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix/:/tmp/.X11-unix -v /sys/fs/cgroup:/sys/fs/cgroup:rw ${INAME} /sbin/init
 
     SUDO="$SUDO" $SUDO docker exec ${CNAME} bash -c "$CTLV_SYSNETSET"
 
