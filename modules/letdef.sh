@@ -1,7 +1,8 @@
 #!/bin/bash
-[ -z $CTLV_MODF_CHECK ] && CTLV_MODF_CHECK=true || return
+[ -z $CTLV_MODF_LETDEF ] && CTLV_MODF_LETDEF=true || return
 
 CTLV_SYSNETSET='
+$SUDO sysctl -w fs.inotify.max_user_instances=8192 > /dev/null
 $SUDO sysctl -w net.ipv4.ip_forward=1 > /dev/null
 $SUDO sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null
 $SUDO sysctl -w net.ipv4.tcp_l3mdev_accept=1 > /dev/null
@@ -14,6 +15,7 @@ $SUDO sysctl -w net.ipv6.conf.default.disable_ipv6=0 > /dev/null
 '
 
 CTLV_SYSNETGET='
+$SUDO sysctl fs.inotify.max_user_instances
 $SUDO sysctl net.ipv4.ip_forward
 $SUDO sysctl net.ipv6.conf.all.forwarding
 $SUDO sysctl net.ipv4.tcp_l3mdev_accept
