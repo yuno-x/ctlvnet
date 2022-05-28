@@ -38,9 +38,13 @@ function ctlv_mod_install()
     then
       ctlv_check_systemctl
 
-      $SUDO apt -y install apt-transport-https ca-certificates curl software-properties-common
-      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO apt-key add -
-      $SUDO add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+      if ! apt-add-repository --list | grep download.docker.com > /dev/null
+      then
+        $SUDO apt -y install apt-transport-https ca-certificates curl software-properties-common
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | $SUDO apt-key add -
+        $SUDO add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+      fi
+
       $SUDO apt -y install docker-ce
       $SUDO bash -c 'cat <<EOF > /etc/docker/daemon.json
 {
@@ -48,6 +52,7 @@ function ctlv_mod_install()
 }
 EOF'
       $SUDO systemctl enable docker
+      $SUDO systemctl start docker
     else
       echo "Install Canceled."
       exit -1
@@ -62,6 +67,8 @@ EOF'
     exit -1
   fi
   IMAGENAME=$1
+
+  echo "Installing would take about 15-20min."
 
   REQUIRED_PACKAGE="bash-completion apt-utils expect tmux vim htop iproute2 iputils-ping iputils-arping iperf3 traceroute curl nmap telnet netcat tcpdump iptables nftables apt-file lsof w3m git python3 systemd avahi-daemon avahi-utils bind9 bind9utils bind9-dnsutils man openssh-server openssh-client telnetd frr apache2 dsniff isc-dhcp-server isc-dhcp-client network-manager"
   SUGGESTED_PACKAGE="wireshark ncat hexedit nkf x11-apps build-essential php mysql-server mysql-client openjdk-18-jdk"
@@ -153,7 +160,9 @@ match-device=interface-name:*
 managed=true
 EOF'
 
-  $SUDO docker exec $CNAME systemctl disable network-manager
+#  $SUDO docker exec $CNAME systemctl disable systemd-logind
+  $SUDO docker exec $CNAME systemctl disable getty@.service
+  $SUDO docker exec $CNAME systemctl disable NetworkManager
   $SUDO docker exec $CNAME systemctl enable nftables
   $SUDO docker exec $CNAME sed -i "s/#enable-reflector=no/#enable-reflector=no\nenable-reflector=yes/g" /etc/avahi/avahi-daemon.conf
 
